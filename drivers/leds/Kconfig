@@ -896,7 +896,16 @@ config LEDS_QPNP_VIBRATOR_LDO
 	  peripheral found on Qualcomm Technologies, Inc. QPNP PMICs.
 	  The vibrator-ldo peripheral is capable of driving ERM vibrators.
 
+config LEDS_VIBRATOR_DRV2624
+	tristate "LED driver for DRV2625 Vibrator"
+	depends on LEDS_CLASS
+	depends on I2C
+	default y
+	help
+	  This option enables support for drv2625 vibrator driver chips
+
 comment "LED Triggers"
 source "drivers/leds/trigger/Kconfig"
+source "drivers/leds/drv2624/Kconfig"
 
 endif # NEW_LEDS
