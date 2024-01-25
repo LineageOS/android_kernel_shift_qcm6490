@@ -1636,6 +1636,14 @@ static int wcd_mbhc_usbc_ana_event_handler(struct notifier_block *nb,
 			mbhc->mbhc_cb->clk_setup(mbhc->component, true);
 		/* insertion detected, enable L_DET_EN */
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_L_DET_EN, 1);
+	} else {
+		if (unlikely((mbhc->mbhc_cb->lock_sleep(mbhc, true)) == false)) {
+			pr_warn("%s: failed to hold suspend\n", __func__);
+		} else {
+			/* Call handler */
+			wcd_mbhc_swch_irq_handler(mbhc);
+			mbhc->mbhc_cb->lock_sleep(mbhc, false);
+		}
 	}
 	return 0;
 }
