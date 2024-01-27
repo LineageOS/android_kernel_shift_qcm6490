@@ -115,6 +115,7 @@ enum usb_property_id {
 	USB_TYPEC_COMPLIANT,
 	USB_SCOPE,
 	USB_CONNECTOR_TYPE,
+	USB_TYPEC_CC_ORIENTATION,
 	USB_PROP_MAX,
 };
 
@@ -1531,6 +1532,23 @@ static ssize_t usb_typec_compliant_show(struct class *c,
 }
 static CLASS_ATTR_RO(usb_typec_compliant);
 
+static ssize_t usb_typec_cc_orientation_show(struct class *c,
+				struct class_attribute *attr, char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_USB];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, USB_TYPEC_CC_ORIENTATION);
+	if (rc < 0)
+		return rc;
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n",
+			(int)pst->prop[USB_TYPEC_CC_ORIENTATION]);
+}
+static CLASS_ATTR_RO(usb_typec_cc_orientation);
+
 static ssize_t usb_real_type_show(struct class *c,
 				struct class_attribute *attr, char *buf)
 {
@@ -1802,6 +1820,7 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_restrict_cur.attr,
 	&class_attr_usb_real_type.attr,
 	&class_attr_usb_typec_compliant.attr,
+	&class_attr_usb_typec_cc_orientation.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(battery_class);
