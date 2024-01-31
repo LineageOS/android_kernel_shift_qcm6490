@@ -1624,12 +1624,14 @@ static int wcd_mbhc_set_keycode(struct wcd_mbhc *mbhc)
 static int wcd_mbhc_usbc_ana_event_handler(struct notifier_block *nb,
 					   unsigned long mode, void *ptr)
 {
+	static unsigned long pre_mode;
+
 	struct wcd_mbhc *mbhc = container_of(nb, struct wcd_mbhc, fsa_nb);
 
 	if (!mbhc)
 		return -EINVAL;
 
-	dev_dbg(mbhc->component->dev, "%s: mode = %lu\n", __func__, mode);
+	dev_dbg(mbhc->component->dev, "%s:pre_mode = %lu, mode = %lu\n", __func__, pre_mode, mode);
 
 	if (mode == TYPEC_ACCESSORY_AUDIO) {
 		if (mbhc->mbhc_cb->clk_setup)
@@ -1637,6 +1639,9 @@ static int wcd_mbhc_usbc_ana_event_handler(struct notifier_block *nb,
 		/* insertion detected, enable L_DET_EN */
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_L_DET_EN, 1);
 	} else {
+		if(pre_mode == mode)
+			return 0;
+
 		if (unlikely((mbhc->mbhc_cb->lock_sleep(mbhc, true)) == false)) {
 			pr_warn("%s: failed to hold suspend\n", __func__);
 		} else {
@@ -1645,6 +1650,7 @@ static int wcd_mbhc_usbc_ana_event_handler(struct notifier_block *nb,
 			mbhc->mbhc_cb->lock_sleep(mbhc, false);
 		}
 	}
+	pre_mode = mode;
 	return 0;
 }
 #else
