@@ -53,6 +53,8 @@
 #define WLS_FW_BUF_SIZE			128
 #define DEFAULT_RESTRICT_FCC_UA		1000000
 
+#define SHIFTPHONE8
+
 enum usb_connector_type {
 	USB_CONNECTOR_TYPE_TYPEC,
 	USB_CONNECTOR_TYPE_MICRO_USB,
@@ -115,7 +117,9 @@ enum usb_property_id {
 	USB_TYPEC_COMPLIANT,
 	USB_SCOPE,
 	USB_CONNECTOR_TYPE,
+#ifdef SHIFTPHONE8
 	USB_TYPEC_CC_ORIENTATION,
+#endif
 	USB_PROP_MAX,
 };
 
@@ -127,6 +131,10 @@ enum wireless_property_id {
 	WLS_CURR_MAX,
 	WLS_TYPE,
 	WLS_BOOST_EN,
+#ifdef SHIFTPHONE8
+	WLS_REG_ADDR,
+	WLS_REG_DATA,
+#endif
 	WLS_PROP_MAX,
 };
 
@@ -1532,6 +1540,7 @@ static ssize_t usb_typec_compliant_show(struct class *c,
 }
 static CLASS_ATTR_RO(usb_typec_compliant);
 
+#ifdef SHIFTPHONE8
 static ssize_t usb_typec_cc_orientation_show(struct class *c,
 				struct class_attribute *attr, char *buf)
 {
@@ -1548,6 +1557,7 @@ static ssize_t usb_typec_cc_orientation_show(struct class *c,
 			(int)pst->prop[USB_TYPEC_CC_ORIENTATION]);
 }
 static CLASS_ATTR_RO(usb_typec_cc_orientation);
+#endif
 
 static ssize_t usb_real_type_show(struct class *c,
 				struct class_attribute *attr, char *buf)
@@ -1804,6 +1814,78 @@ static ssize_t ship_mode_en_show(struct class *c, struct class_attribute *attr,
 }
 static CLASS_ATTR_RW(ship_mode_en);
 
+#ifdef SHIFTPHONE8
+static ssize_t wlsRegAddr_store(struct class *c, struct class_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	u16 val;
+	int rc;
+
+	if (kstrtou16(buf, 0, &val))
+		return -EINVAL;
+
+	rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS],
+				WLS_REG_ADDR, val);
+	if (rc < 0)
+		return rc;
+
+	return count;
+}
+
+static ssize_t wlsRegAddr_show(struct class *c, struct class_attribute *attr,
+				char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_WLS];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, WLS_REG_ADDR);
+	if (rc < 0)
+		return rc;
+
+	return scnprintf(buf, PAGE_SIZE, "0x%04x\n", pst->prop[WLS_REG_ADDR]);
+}
+static CLASS_ATTR_RW(wlsRegAddr);
+
+static ssize_t wlsRegData_store(struct class *c, struct class_attribute *attr,
+				const char *buf, size_t count)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	u16 val;
+	int rc;
+
+	if (kstrtou16(buf, 0, &val))
+		return -EINVAL;
+
+	rc = write_property_id(bcdev, &bcdev->psy_list[PSY_TYPE_WLS],
+				WLS_REG_DATA, val);
+	if (rc < 0)
+		return rc;
+
+	return count;
+}
+
+static ssize_t wlsRegData_show(struct class *c, struct class_attribute *attr,
+				char *buf)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	struct psy_state *pst = &bcdev->psy_list[PSY_TYPE_WLS];
+	int rc;
+
+	rc = read_property_id(bcdev, pst, WLS_REG_DATA);
+	if (rc < 0)
+		return rc;
+
+	return scnprintf(buf, PAGE_SIZE, "0x%04x\n", pst->prop[WLS_REG_DATA]);
+}
+static CLASS_ATTR_RW(wlsRegData);
+#endif
+
 static struct attribute *battery_class_attrs[] = {
 	&class_attr_soh.attr,
 	&class_attr_resistance.attr,
@@ -1820,7 +1902,11 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_restrict_cur.attr,
 	&class_attr_usb_real_type.attr,
 	&class_attr_usb_typec_compliant.attr,
+#ifdef SHIFTPHONE8
 	&class_attr_usb_typec_cc_orientation.attr,
+	&class_attr_wlsRegAddr.attr,
+	&class_attr_wlsRegData.attr,
+#endif
 	NULL,
 };
 ATTRIBUTE_GROUPS(battery_class);
