@@ -26,6 +26,19 @@ int gf_parse_dts(struct gf_dev *gf_dev)
 	struct device *dev = &gf_dev->spi->dev;
 	struct device_node *np = dev->of_node;
 
+	gf_dev->vdden_gpio = of_get_named_gpio(np, "fp-gpio-vdden", 0);
+	if (gf_dev->vdden_gpio < 0) {
+		pr_err("falied to get vdden gpio!\n");
+		return gf_dev->vdden_gpio;
+	}
+	rc = devm_gpio_request(dev, gf_dev->vdden_gpio, "goodix_vdden");
+	if (rc) {
+		pr_err("failed to request vdden gpio, rc = %d\n", rc);
+		goto err_reset;
+	}
+	gpio_direction_output(gf_dev->vdden_gpio, 1);
+	mdelay(15);
+
 	gf_dev->reset_gpio = of_get_named_gpio(np, "fp-gpio-reset", 0);
 	if (gf_dev->reset_gpio < 0) {
 		pr_err("falied to get reset gpio!\n");
@@ -70,6 +83,10 @@ void gf_cleanup(struct gf_dev *gf_dev)
 		gpio_free(gf_dev->reset_gpio);
 		pr_info("remove reset_gpio success\n");
 	}
+	if (gpio_is_valid(gf_dev->vdden_gpio)) {
+		gpio_free(gf_dev->vdden_gpio);
+		pr_info("remove vdden_gpio success\n");
+	}
 }
 
 int gf_power_on(struct gf_dev *gf_dev)
@@ -77,6 +94,11 @@ int gf_power_on(struct gf_dev *gf_dev)
 	int rc = 0;
 
 	/* TODO: add your power control here */
+	pr_err("[info] %s\n", __func__);
+	if (gpio_is_valid(gf_dev->vdden_gpio)) {
+		gpio_set_value(gf_dev->vdden_gpio, 1);
+		pr_err("pwr on success\n");
+	}
 	return rc;
 }
 
@@ -85,6 +107,11 @@ int gf_power_off(struct gf_dev *gf_dev)
 	int rc = 0;
 
 	/* TODO: add your power control here */
+	pr_err("[info] %s\n", __func__);
+	if (gpio_is_valid(gf_dev->vdden_gpio)) {
+		gpio_set_value(gf_dev->vdden_gpio, 0);
+		pr_err("pwr off success\n");
+	}
 
 	return rc;
 }

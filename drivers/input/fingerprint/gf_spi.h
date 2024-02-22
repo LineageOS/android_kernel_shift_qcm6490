@@ -128,6 +128,7 @@ struct gf_dev {
 	signed irq_gpio;
 	signed reset_gpio;
 	signed pwr_gpio;
+	signed vdden_gpio;
 	int irq;
 	int irq_enabled;
 	int clk_enabled;
