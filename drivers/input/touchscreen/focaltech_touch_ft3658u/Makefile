@@ -1,17 +1,14 @@
 # Makefile for the focaltech touchscreen drivers.
 
 
-obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_core.o
-obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_ex_fun.o
-obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_ex_mode.o
-obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_gesture.o
-obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_esdcheck.o
-obj-$(CONFIG_TOUCHSCREEN_FTS)   +=  focaltech_point_report_check.o
+obj-m	+=  focaltech_ts.o
 
-
-obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_flash.o
-obj-$(CONFIG_TOUCHSCREEN_FTS)   +=  focaltech_flash/
-
-
-
-obj-$(CONFIG_TOUCHSCREEN_FTS)   +=  focaltech_i2c.o
+focaltech_ts-y += focaltech_core.o
+focaltech_ts-y += focaltech_ex_fun.o
+focaltech_ts-y += focaltech_ex_mode.o
+focaltech_ts-y += focaltech_gesture.o
+focaltech_ts-y += focaltech_esdcheck.o
+focaltech_ts-y += focaltech_point_report_check.o
+focaltech_ts-y += focaltech_flash.o
+focaltech_ts-y += focaltech_flash/focaltech_upgrade_ft3658u.o
+focaltech_ts-y += focaltech_i2c.o

@@ -113,7 +113,7 @@
 #define FTS_PATCH_COMERR_PM                 0
 #define FTS_TIMEOUT_COMERR_PM               700
 
-
+extern ssize_t vfs_read(struct file *, char __user *, size_t, loff_t *);
 /*****************************************************************************
 * Private enumerations, structures and unions using typedef
 *****************************************************************************/
