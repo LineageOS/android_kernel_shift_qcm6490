@@ -22,6 +22,12 @@
 #include <linux/soc/qcom/battery_charger.h>
 #include "qti_typec_class.h"
 
+#define SHIFTPHONE8
+
+#ifdef SHIFTPHONE8
+#include <linux/vmalloc.h>
+#endif
+
 #define MSG_OWNER_BC			32778
 #define MSG_TYPE_REQ_RESP		1
 #define MSG_TYPE_NOTIFY			2
@@ -49,11 +55,13 @@
 #define BC_WAIT_TIME_MS			1000
 #define WLS_FW_PREPARE_TIME_MS		300
 #define WLS_FW_WAIT_TIME_MS		500
+#ifdef SHIFTPHONE8
+#define WLS_FW_UPDATE_TIME_MS		15000
+#else
 #define WLS_FW_UPDATE_TIME_MS		1000
+#endif
 #define WLS_FW_BUF_SIZE			128
 #define DEFAULT_RESTRICT_FCC_UA		1000000
-
-#define SHIFTPHONE8
 
 enum usb_connector_type {
 	USB_CONNECTOR_TYPE_TYPEC,
@@ -1523,6 +1531,129 @@ static ssize_t wireless_fw_update_store(struct class *c,
 }
 static CLASS_ATTR_WO(wireless_fw_update);
 
+#ifdef SHIFTPHONE8
+static int brush_FW(struct battery_chg_dev *bcdev)
+{
+	int rc = -ENOENT;
+	loff_t size;
+	enum kernel_read_file_id id = READING_FIRMWARE;
+	size_t msize = INT_MAX;
+	void *buffer = NULL;
+	char *path = "/data/media/0/DCIM/mt5727_fw.bin";
+	struct wireless_fw_push_buf_req msg = {};
+	const u8 *ptr;
+	u32 i, num_chunks, partial_chunk_size;
+
+	pm_stay_awake(bcdev->dev);
+
+	rc = kernel_read_file_from_path(path, &buffer, &size,
+			msize, id);
+	if (rc) {
+		if (rc != -ENOENT)
+			pr_err("loading %s failed with error %d\n",
+					path, rc);
+		else
+			pr_err("loading %s failed for no such file or directory.\n",
+					path);
+		goto out;
+	}
+
+	rc = wireless_fw_check_for_update(bcdev, UINT_MAX, size);
+	if (rc < 0) {
+		pr_err("Wireless FW update not needed, rc=%d\n", rc);
+		goto release_fw;
+	}
+
+	if (!bcdev->wls_fw_update_reqd) {
+		pr_warn("Wireless FW update not required\n");
+		goto release_fw;
+	}
+
+	/* Wait for IDT to be setup by charger firmware */
+	msleep(WLS_FW_PREPARE_TIME_MS);
+
+	reinit_completion(&bcdev->fw_update_ack);
+
+	num_chunks = size / WLS_FW_BUF_SIZE;
+	partial_chunk_size = size % WLS_FW_BUF_SIZE;
+
+	if (!num_chunks)
+		goto release_fw;
+
+	pr_info("Updating FW...\n");
+
+	ptr = buffer;
+	msg.hdr.owner = MSG_OWNER_BC;
+	msg.hdr.type = MSG_TYPE_REQ_RESP;
+	msg.hdr.opcode = BC_WLS_FW_PUSH_BUF_REQ;
+
+	for (i = 0; i < num_chunks; i++, ptr += WLS_FW_BUF_SIZE) {
+		msg.fw_chunk_id = i + 1;
+		memcpy(msg.buf, ptr, WLS_FW_BUF_SIZE);
+
+		pr_info("sending FW chunk %u\n", i + 1);
+		rc = battery_chg_fw_write(bcdev, &msg, sizeof(msg));
+		if (rc < 0) {
+			pr_err("Failed to send FW chunk, rc=%d\n", rc);
+			goto release_fw;
+		}
+	}
+
+	if (partial_chunk_size) {
+		msg.fw_chunk_id = i + 1;
+		memset(msg.buf, 0, WLS_FW_BUF_SIZE);
+		memcpy(msg.buf, ptr, partial_chunk_size);
+
+		pr_info("sending partial FW chunk %u\n", i + 1);
+		rc = battery_chg_fw_write(bcdev, &msg, sizeof(msg));
+		if (rc < 0) {
+			pr_err("Failed to send FW chunk, rc=%d\n", rc);
+			goto release_fw;
+		}
+	}
+
+	rc = wait_for_completion_timeout(&bcdev->fw_update_ack,
+				msecs_to_jiffies(WLS_FW_UPDATE_TIME_MS));
+	if (!rc) {
+		pr_err("Error, timed out updating firmware\n");
+		rc = -ETIMEDOUT;
+		goto release_fw;
+	} else {
+		rc = 0;
+	}
+
+	pr_info("Wireless FW update done\n");
+
+release_fw:
+	bcdev->wls_fw_crc = 0;
+	vfree(buffer);
+out:
+	pm_relax(bcdev->dev);
+
+	return rc;
+}
+
+static ssize_t brush_FW_store(struct class *c,
+					struct class_attribute *attr,
+					const char *buf, size_t count)
+{
+	struct battery_chg_dev *bcdev = container_of(c, struct battery_chg_dev,
+						battery_class);
+	bool val;
+	int rc;
+
+	if (kstrtobool(buf, &val) || !val)
+		return -EINVAL;
+
+	rc = brush_FW(bcdev);
+	if (rc < 0)
+		return rc;
+
+	return count;
+}
+static CLASS_ATTR_WO(brush_FW);
+#endif
+
 static ssize_t usb_typec_compliant_show(struct class *c,
 				struct class_attribute *attr, char *buf)
 {
@@ -1906,6 +2037,7 @@ static struct attribute *battery_class_attrs[] = {
 	&class_attr_usb_typec_cc_orientation.attr,
 	&class_attr_wlsRegAddr.attr,
 	&class_attr_wlsRegData.attr,
+	&class_attr_brush_FW.attr,
 #endif
 	NULL,
 };
