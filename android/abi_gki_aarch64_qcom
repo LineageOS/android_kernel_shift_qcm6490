@@ -2934,3 +2934,5 @@
   xdp_rxq_info_reg
   xdp_rxq_info_reg_mem_model
   xdp_rxq_info_unreg
+  devm_snd_soc_register_component
+  snd_soc_info_volsw_range
