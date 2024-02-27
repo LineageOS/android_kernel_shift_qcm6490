@@ -1297,6 +1297,7 @@
   kernel_setsockopt
   kernel_sigaction
   kernel_write
+  kernel_read_file_from_path
   kernfs_find_and_get_ns
   kernfs_notify
   kernfs_put
