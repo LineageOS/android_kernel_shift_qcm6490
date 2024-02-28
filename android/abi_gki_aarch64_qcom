@@ -917,6 +917,8 @@
   fd_install
   fget
   file_path
+  filp_close
+  filp_open
   find_last_bit
   find_next_bit
   find_next_zero_bit
@@ -2842,6 +2844,7 @@
   vfs_listxattr
   vfs_mkdir
   vfs_rename
+  vfs_read
   vfs_rmdir
   vfs_setxattr
   vfs_unlink
