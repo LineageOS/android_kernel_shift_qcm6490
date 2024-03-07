@@ -16,6 +16,7 @@
 #include <linux/string.h>
 #include "dsi_drm.h"
 #include "dsi_display.h"
+#include "dsi_panel.h"
 #include "dp_panel.h"
 #include "sde_crtc.h"
 #include "sde_rm.h"
@@ -184,9 +185,53 @@ static int sde_backlight_device_get_brightness(struct backlight_device *bd)
 	return 0;
 }
 
+static int sde_backlight_device_update_fps(struct backlight_device *bd)
+{
+	u8 value;
+	int rc = 0;
+	struct sde_connector *c_conn = bl_get_data(bd);
+
+	struct dsi_display *dsi_display = c_conn->display;
+
+	//struct dsi_panel *panel = c_conn->display->panel;
+	struct dsi_panel *panel = dsi_display->panel;
+	struct dsi_backlight_config *bl = &panel->bl_config;
+
+	value = bd->props.fps_func;
+
+	if (bl->type == DSI_BACKLIGHT_DCS)
+		rc = dsi_panel_update_display_fps(panel, value);
+	if (rc < 0)
+		SDE_ERROR("Failed to update backlight fps\n");
+
+	return rc;
+}
+
+static int sde_backlight_device_update_hbm(struct backlight_device *bd)
+{
+	u8 value;
+	int rc = 0;
+	struct sde_connector *c_conn = bl_get_data(bd);
+	struct dsi_display *dsi_display = c_conn->display;
+	//struct dsi_panel *panel = c_conn->display->panel;
+	struct dsi_panel *panel = dsi_display->panel;
+	struct dsi_backlight_config *bl = &panel->bl_config;
+
+	value = bd->props.hbm_mode;
+
+	if (bl->type == DSI_BACKLIGHT_DCS)
+		rc = dsi_panel_update_display_hbm(panel, value);
+	if (rc < 0)
+		SDE_ERROR("Failed to update backlight hbm\n");
+
+	return rc;
+}
+
 static const struct backlight_ops sde_backlight_device_ops = {
 	.update_status = sde_backlight_device_update_status,
 	.get_brightness = sde_backlight_device_get_brightness,
+	.update_fps = sde_backlight_device_update_fps,
+	.update_hbm = sde_backlight_device_update_hbm,
 };
 
 static int sde_backlight_cooling_cb(struct notifier_block *nb,
@@ -248,6 +293,8 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 	props.power = FB_BLANK_UNBLANK;
 	props.max_brightness = brightness_max_level;
 	props.brightness = brightness_max_level;
+	props.fps_func = 0;
+	props.hbm_mode = 0;
 	snprintf(bl_node_name, BL_NODE_NAME_SIZE, "panel%u-backlight",
 							display_count);
 	c_conn->bl_device = backlight_device_register(bl_node_name, dev->dev,
