@@ -217,6 +217,102 @@ static ssize_t brightness_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(brightness);
 
+int backlight_device_set_fps_func(struct backlight_device *bd,
+				    unsigned long value)
+{
+	int rc = -ENXIO;
+
+	mutex_lock(&bd->ops_lock);
+	if (bd->ops) {
+		if (value > 0xff)
+			rc = -EINVAL;
+		else {
+			pr_debug("set fps func to %lu\n", value);
+			bd->props.fps_func = value;
+			rc = backlight_update_fps(bd);
+		}
+	}
+	mutex_unlock(&bd->ops_lock);
+
+	//backlight_generate_event(bd, BACKLIGHT_UPDATE_SYSFS);
+
+	return rc;
+}
+EXPORT_SYMBOL(backlight_device_set_fps_func);
+
+int backlight_device_set_hbm_mode(struct backlight_device *bd,
+				    unsigned long value)
+{
+	int rc = -ENXIO;
+
+	mutex_lock(&bd->ops_lock);
+	if (bd->ops) {
+		if (value > 0xff)
+			rc = -EINVAL;
+		else {
+			pr_debug("set hbm mode to %lu\n", value);
+			bd->props.hbm_mode = value;
+			rc = backlight_update_hbm(bd);
+		}
+	}
+	mutex_unlock(&bd->ops_lock);
+
+	//backlight_generate_event(bd, BACKLIGHT_UPDATE_SYSFS);
+
+	return rc;
+}
+EXPORT_SYMBOL(backlight_device_set_hbm_mode);
+
+static ssize_t bl_fps_func_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct backlight_device *bd = to_backlight_device(dev);
+
+	return sprintf(buf, "%d\n", bd->props.fps_func);
+}
+
+static ssize_t bl_fps_func_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	struct backlight_device *bd = to_backlight_device(dev);
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	rc = backlight_device_set_fps_func(bd, value);
+
+	return rc ? rc : count;
+}
+static DEVICE_ATTR_RW(bl_fps_func);
+
+static ssize_t bl_hbm_mode_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct backlight_device *bd = to_backlight_device(dev);
+
+	return sprintf(buf, "%d\n", bd->props.hbm_mode);
+}
+
+static ssize_t bl_hbm_mode_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	struct backlight_device *bd = to_backlight_device(dev);
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	rc = backlight_device_set_hbm_mode(bd, value);
+
+	return rc ? rc : count;
+}
+static DEVICE_ATTR_RW(bl_hbm_mode);
+
 static ssize_t type_show(struct device *dev, struct device_attribute *attr,
 		char *buf)
 {
@@ -308,6 +404,8 @@ static void bl_device_release(struct device *dev)
 static struct attribute *bl_device_attrs[] = {
 	&dev_attr_bl_power.attr,
 	&dev_attr_brightness.attr,
+	&dev_attr_bl_fps_func.attr,
+	&dev_attr_bl_hbm_mode.attr,
 	&dev_attr_actual_brightness.attr,
 	&dev_attr_max_brightness.attr,
 	&dev_attr_scale.attr,
@@ -363,6 +461,8 @@ struct backlight_device *backlight_device_register(const char *name,
 
 	mutex_init(&new_bd->update_lock);
 	mutex_init(&new_bd->ops_lock);
+	mutex_init(&new_bd->fps_lock);
+	mutex_init(&new_bd->hbm_lock);
 
 	new_bd->dev.class = backlight_class;
 	new_bd->dev.parent = parent;

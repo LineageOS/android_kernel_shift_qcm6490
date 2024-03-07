@@ -65,6 +65,9 @@ struct backlight_ops {
 	/* Return the current backlight brightness (accounting for power,
 	   fb_blank etc.) */
 	int (*get_brightness)(struct backlight_device *);
+
+	int (*update_fps)(struct backlight_device *);
+	int (*update_hbm)(struct backlight_device *);
 	/* Check if given framebuffer device is the one bound to this backlight;
 	   return 0 if not, !=0 if it is. If NULL, backlight always matches the fb. */
 	int (*check_fb)(struct backlight_device *, struct fb_info *);
@@ -72,6 +75,10 @@ struct backlight_ops {
 
 /* This structure defines all the properties of a backlight */
 struct backlight_properties {
+	/* backlight write FPS control (0: off, 1:on) */
+	u8 fps_func;
+	/* backlight HBM mode setting (0: off, 1:on) */
+	u8 hbm_mode;
 	/* Current User requested brightness (0 - max_brightness) */
 	int brightness;
 	/* Maximal value for brightness (read-only) */
@@ -101,6 +108,12 @@ struct backlight_device {
 	/* Serialise access to update_status method */
 	struct mutex update_lock;
 
+	/* Serialise access to update_fps method */
+	struct mutex fps_lock;
+
+	/* Serialise access to update_hbm method */
+	struct mutex hbm_lock;
+
 	/* This protects the 'ops' field. If 'ops' is NULL, the driver that
 	   registered this device has been unloaded, and if class_get_devdata()
 	   points to something in the body of that driver, it is also invalid. */
@@ -129,6 +142,30 @@ static inline int backlight_update_status(struct backlight_device *bd)
 	if (bd->ops && bd->ops->update_status)
 		ret = bd->ops->update_status(bd);
 	mutex_unlock(&bd->update_lock);
+
+	return ret;
+}
+
+static inline int backlight_update_fps(struct backlight_device *bd)
+{
+	int ret = -ENOENT;
+
+	mutex_lock(&bd->fps_lock);
+	if (bd->ops && bd->ops->update_fps)
+		ret = bd->ops->update_fps(bd);
+	mutex_unlock(&bd->fps_lock);
+
+	return ret;
+}
+
+static inline int backlight_update_hbm(struct backlight_device *bd)
+{
+	int ret = -ENOENT;
+
+	mutex_lock(&bd->hbm_lock);
+	if (bd->ops && bd->ops->update_hbm)
+		ret = bd->ops->update_hbm(bd);
+	mutex_unlock(&bd->hbm_lock);
 
 	return ret;
 }

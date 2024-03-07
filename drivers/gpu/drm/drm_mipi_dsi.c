@@ -1044,6 +1044,52 @@ int mipi_dsi_dcs_set_tear_scanline(struct mipi_dsi_device *dsi, u16 scanline)
 EXPORT_SYMBOL(mipi_dsi_dcs_set_tear_scanline);
 
 /**
+ * mipi_dsi_dcs_set_hbm_mode() - sets the brightness value of the
+ *    display
+ * @dsi: DSI peripheral device
+ * @value: set display hbm mode. 1:enable  0:disable
+ *
+ * Return: 0 on success or a negative error code on failure.
+ */
+int mipi_dsi_dcs_set_display_hbm_mode(struct mipi_dsi_device *dsi,
+					u8 value)
+{
+	ssize_t err;
+
+	err = mipi_dsi_dcs_write(dsi, MIPI_DCS_WRITE_CONTROL_DISPLAY,
+				 &value, sizeof(value));
+
+	if (err < 0)
+		return err;
+
+	return 0;
+}
+EXPORT_SYMBOL(mipi_dsi_dcs_set_display_hbm_mode);
+
+/**
+ * mipi_dsi_dcs_set_display_fps_func() - sets the local fps function of the
+ *    display
+ * @dsi: DSI peripheral device
+ * @value: set display fps function. 1:on  0:off
+ *
+ * Return: 0 on success or a negative error code on failure.
+ */
+int mipi_dsi_dcs_set_display_fps_func(struct mipi_dsi_device *dsi,
+					u8 value)
+{
+	ssize_t err;
+
+	err = mipi_dsi_dcs_write(dsi, MIPI_DCS_WRITE_FPS_CONTROL,
+				 &value, sizeof(value));
+
+	if (err < 0)
+		return err;
+
+	return 0;
+}
+EXPORT_SYMBOL(mipi_dsi_dcs_set_display_fps_func);
+
+/**
  * mipi_dsi_dcs_set_display_brightness() - sets the brightness value of the
  *    display
  * @dsi: DSI peripheral device
