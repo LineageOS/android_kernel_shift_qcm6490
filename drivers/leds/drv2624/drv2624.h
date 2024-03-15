@@ -30,10 +30,12 @@
 
 #define LEDS_ARCH
 
-#ifdef LEDS_ARCH
+#if 0
 	#include <linux/leds.h>
 #else
+	#include <linux/leds.h>
 	#include <linux/input.h>
+	#include <linux/miscdevice.h>
 	#define RTP_BIN_FILE							("drv2624.rtp")
 	#define RTP_ID  (SMS_HTONL('r','t','p',0))
 	struct wv_cmds {
@@ -83,7 +85,9 @@
 	};
 #endif
 
-#define RAM_BIN_FILE		 						("drv2624.ram")
+// #define RAM_BIN_FILE		 						("drv2624.ram")
+#define RTP_BIN_FILE								("drv2624.rtp")
+#define HAPTICS_DEVICE_NAME 						"drv2625"
 #define FRES_MIN									(45)
 #define FRES_DEFAULT								(150)
 #define FRES_MAX									(FRES_DEFAULT<<1)
@@ -96,6 +100,7 @@
 
 #define	DRV2624_R0X00								(0x00)
 #define DRV2624_R0X00_CHIP_ID_REV					(0x03)
+#define DRV2625_R0X00_CHIP_ID_REV					(0x13)
 
 #define	DRV2624_R0X01_STATUS						(0x01)
 #define	DRV2624_R0X01_STATUS_DIAG_RESULT_MSK		(0x80)
@@ -241,6 +246,173 @@
 							(((c)&0x000000FF)<<8)  | \
 							((d)&0x000000FF)	)
 
+
+#define	DRV2625_REG_ID				(0x00)
+#define	DRV2625_ID					(0x12&0xf0)
+
+#define	DRV2625_REG_STATUS			0x01
+#define	DIAG_MASK					0x80
+#define	DIAG_SUCCESS				0x00
+#define	DIAG_SHIFT					0x07
+#define	INT_MASK					0x1f
+#define	PRG_ERR_MASK				0x10
+#define	PROCESS_DONE_MASK			0x08
+#define	ULVO_MASK					0x04
+#define	OVERTEMPRATURE_MASK			0x02
+#define	OVERCURRENT_MASK			0x01
+
+#define	DRV2625_REG_INT_ENABLE		0x02
+#define	INT_MASK_ALL				0x1f
+#define	INT_ENABLE_ALL				0x00
+#define	INT_ENABLE_CRITICAL			0x08
+
+#define	DRV2625_REG_DIAG_Z			0x03
+
+ #define DRV26XX_I2C_RETRY_COUNT                     (3)
+
+#define	DRV2625_REG_MODE			0x07
+#define	WORKMODE_MASK				0x03
+#define	MODE_RTP					0x00
+#define	MODE_WAVEFORM_SEQUENCER		0x01
+#define	MODE_DIAGNOSTIC				0x02
+#define	MODE_CALIBRATION			0x03
+#define	PINFUNC_MASK				0x0c
+#define	PINFUNC_INT					0x02
+#define	PINFUNC_SHIFT				0x02
+
+#define	DRV2625_REG_CONTROL1		0x08
+#define	ACTUATOR_MASK				0x80
+#define	ACTUATOR_SHIFT				7
+#define	LOOP_MASK					0x40
+#define	LOOP_SHIFT					6
+#define	AUTOBRK_OK_MASK				0x10
+#define	AUTOBRK_OK_ENABLE			0x10
+
+#define	DRV2625_REG_GO				0x0c
+
+#define	DRV2625_REG_CONTROL2		0x0d
+#define	LIB_LRA						0x00
+#define	LIB_ERM						0x01
+#define	LIB_MASK					0x80
+#define	LIB_SHIFT					0x07
+#define	SCALE_MASK					0x03
+#define	INTERVAL_MASK				0x20
+#define	INTERVAL_SHIFT				0x05
+
+#define	DRV2625_REG_RTP_INPUT		0x0e
+
+#define	DRV2625_REG_SEQUENCER_1		0x0f
+
+#define	DRV2625_REG_SEQ_LOOP_1		0x17
+
+#define	DRV2625_REG_SEQ_LOOP_2		0x18
+
+#define	DRV2625_REG_MAIN_LOOP		0x19
+
+#define	DRV2625_REG_RATED_VOLTAGE	0x1f
+
+#define	DRV2625_REG_OVERDRIVE_CLAMP	0x20
+
+#define	DRV2625_REG_CAL_COMP		0x21
+
+#define	DRV2625_REG_CAL_BEMF		0x22
+
+#define	DRV2625_REG_LOOP_CONTROL	0x23
+#define	BEMFGAIN_MASK				0x03
+
+#define	DRV2625_REG_DRIVE_TIME		0x27
+#define	DRIVE_TIME_MASK				0x1f
+#define	MINFREQ_SEL_45HZ			0x01
+#define	MINFREQ_SEL_MASK			0x80
+#define	MINFREQ_SEL_SHIFT			0x07
+
+#define	DRV2625_REG_OL_PERIOD_H		0x2e
+
+#define	DRV2625_REG_OL_PERIOD_L		0x2f
+
+#define	DRV2625_REG_DIAG_K			0x30
+
+#define	GO_BIT_POLL_INTERVAL	15
+#define	STANDBY_WAKE_DELAY		1
+#define	WAKE_STANDBY_DELAY		3
+
+
+/* Commands */
+#define	HAPTIC_CMDID_PLAY_SINGLE_EFFECT		0x01
+#define	HAPTIC_CMDID_PLAY_EFFECT_SEQUENCE	0x02
+#define	HAPTIC_CMDID_PLAY_TIMED_EFFECT		0x03
+#define	HAPTIC_CMDID_GET_DEV_ID				0x04
+#define	HAPTIC_CMDID_RUN_DIAG				0x05
+#define	HAPTIC_CMDID_AUDIOHAPTIC_ENABLE		0x06
+#define	HAPTIC_CMDID_AUDIOHAPTIC_DISABLE	0x07
+#define	HAPTIC_CMDID_AUDIOHAPTIC_GETSTATUS	0x08
+#define	HAPTIC_CMDID_REG_WRITE				0x09
+#define	HAPTIC_CMDID_REG_READ				0x0a
+#define	HAPTIC_CMDID_REG_SETBIT				0x0b
+#define	HAPTIC_CMDID_PATTERN_RTP			0x0c
+#define	HAPTIC_CMDID_RTP_SEQUENCE			0x0d
+#define	HAPTIC_CMDID_GET_EFFECT_COUNT		0x10
+#define	HAPTIC_CMDID_UPDATE_FIRMWARE		0x11
+#define	HAPTIC_CMDID_READ_FIRMWARE			0x12
+#define	HAPTIC_CMDID_RUN_CALIBRATION		0x13
+#define	HAPTIC_CMDID_CONFIG_WAVEFORM		0x14
+#define	HAPTIC_CMDID_SET_SEQUENCER			0x15
+#define	HAPTIC_CMDID_REGLOG_ENABLE			0x16
+
+#define	HAPTIC_CMDID_STOP		0xFF
+
+#define	MAX_TIMEOUT		10000 /* 10s */
+#define	MAX_READ_BYTES	0xff
+#define	DRV2625_SEQUENCER_SIZE	8
+
+#define	WORK_IDLE					0
+#define	WORK_VIBRATOR				0x01
+#define	WORK_IRQ					0x02
+#define	WORK_EFFECTSEQUENCER		0x04
+#define	WORK_CALIBRATION			0x08
+#define	WORK_DIAGNOSTIC				0x10
+
+#define	YES		1
+#define	NO		0
+#define	GO		1
+#define	STOP	0
+
+#define	POLL_GO_BIT_INTERVAL	5	/* 5 ms */
+#define	POLL_GO_BIT_RETRY		20	/* 50 times */
+
+#define	GO_BIT_CHECK_INTERVAL           5	/* 5 ms */
+#define	GO_BIT_MAX_RETRY_CNT		20	/* 50 times */
+
+struct drv2625_autocal_result {
+	int mnFinished;
+	unsigned char mnResult;
+	unsigned char mnCalComp;
+	unsigned char mnCalBemf;
+	unsigned char mnCalGain;
+};
+
+struct drv2624_wave_setting {
+	unsigned char mnLoop;
+	unsigned char mnInterval;
+	unsigned char mnScale;
+};
+
+typedef enum {
+	DRV2624_RTP_MODE = 0x00,
+	DRV2624_RAM_MODE,
+	DRV2624_WAVE_SEQ_MODE = DRV2624_RAM_MODE,
+	DRV2624_DIAG_MODE, 
+	DRV2624_CALIBRATION_MODE,
+	DRV2624_NEW_RTP_MODE,
+} drv2624_mode_t;
+struct drv2624_constant_playinfo {
+	int effect_count;
+	int effect_id;
+	int length;
+	int magnitude;
+	unsigned char rtp_input;
+};
+
 typedef enum tiDrv26xxRAM {
 	DRV26XX_BF_FB_BRAKE_FACTOR						= 0x02,
 	DRV26XX_BF_AUTO_BRAKE_STANDBY					= 0x30,
@@ -354,6 +526,8 @@ struct drv2624_diag_result {
 	unsigned char mnCurrentK;
 	unsigned char mnCnt;
 	unsigned int  mnRemohm;
+	int mnFinished;
+	unsigned char mnDiagK;
 };
 
 struct drv2624_data
@@ -368,6 +542,8 @@ struct drv2624_data
 	struct drv26xx_RTPwaveforms rtpwvfm;
 	struct sysfs_cmd mSysfsCmd;
 #endif
+	struct drv26xx_RTPwaveforms rtpwvfm;
+	struct sysfs_cmd mSysfsCmd;
 	struct drv2624_platform_data msPlatData;
 	struct mutex reg_lock;
 	struct mutex haptic_lock;
@@ -391,6 +567,14 @@ struct drv2624_data
 	ktime_t current_ktime;
 	ktime_t pre_enter_ktime;
 	unsigned int interval_us;
+	unsigned char mnFileCmd;
+	unsigned char mnCurrentReg;
+	struct drv2625_autocal_result mAutoCalResult;
+	volatile int mnVibratorPlaying;
+	bool mbIRQUsed;
+	volatile char mnWorkMode;
+	unsigned char mnIntStatus;
+	struct drv2624_constant_playinfo play;
 };
 
 unsigned char drv_get_bf_value(const unsigned char bf,
