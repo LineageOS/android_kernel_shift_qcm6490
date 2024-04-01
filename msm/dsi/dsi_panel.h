@@ -358,6 +358,8 @@ int dsi_panel_update_display_fps(struct dsi_panel *panel, u8 value);
 
 int dsi_panel_update_display_hbm(struct dsi_panel *panel, u8 value);
 
+int dsi_panel_update_display_dynamic_fps(struct dsi_panel *panel, u8 value);
+
 int dsi_panel_update_pps(struct dsi_panel *panel);
 
 int dsi_panel_send_qsync_on_dcs(struct dsi_panel *panel,
