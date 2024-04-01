@@ -263,6 +263,29 @@ int backlight_device_set_hbm_mode(struct backlight_device *bd,
 }
 EXPORT_SYMBOL(backlight_device_set_hbm_mode);
 
+int backlight_device_set_dynamic_fps(struct backlight_device *bd,
+                                    unsigned long value)
+{
+        int rc = -ENXIO;
+
+        mutex_lock(&bd->ops_lock);
+        if (bd->ops) {
+                if (value > 0xff)
+                        rc = -EINVAL;
+                else {
+                        pr_debug("set dynamic fps to %lu\n", value);
+                        bd->props.dynamic_fps = value;
+                        rc = backlight_update_dynamic_fps(bd);
+                }
+        }
+        mutex_unlock(&bd->ops_lock);
+
+        //backlight_generate_event(bd, BACKLIGHT_UPDATE_SYSFS);
+
+        return rc;
+}
+EXPORT_SYMBOL(backlight_device_set_dynamic_fps);
+
 static ssize_t bl_fps_func_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -312,6 +335,31 @@ static ssize_t bl_hbm_mode_store(struct device *dev,
 	return rc ? rc : count;
 }
 static DEVICE_ATTR_RW(bl_hbm_mode);
+
+static ssize_t dynamic_fps_show(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+        struct backlight_device *bd = to_backlight_device(dev);
+
+        return sprintf(buf, "%d\n", bd->props.dynamic_fps);
+}
+
+static ssize_t dynamic_fps_store(struct device *dev,
+                struct device_attribute *attr, const char *buf, size_t count)
+{
+        int rc;
+        struct backlight_device *bd = to_backlight_device(dev);
+        u8 value;
+
+        rc = kstrtou8(buf, 0, &value);
+        if (rc)
+                return rc;
+
+        rc = backlight_device_set_dynamic_fps(bd, value);
+
+        return rc ? rc : count;
+}
+static DEVICE_ATTR_RW(dynamic_fps);
 
 static ssize_t type_show(struct device *dev, struct device_attribute *attr,
 		char *buf)
@@ -406,6 +454,7 @@ static struct attribute *bl_device_attrs[] = {
 	&dev_attr_brightness.attr,
 	&dev_attr_bl_fps_func.attr,
 	&dev_attr_bl_hbm_mode.attr,
+	&dev_attr_dynamic_fps.attr,
 	&dev_attr_actual_brightness.attr,
 	&dev_attr_max_brightness.attr,
 	&dev_attr_scale.attr,
@@ -463,6 +512,7 @@ struct backlight_device *backlight_device_register(const char *name,
 	mutex_init(&new_bd->ops_lock);
 	mutex_init(&new_bd->fps_lock);
 	mutex_init(&new_bd->hbm_lock);
+	mutex_init(&new_bd->dynamic_fps_lock);
 
 	new_bd->dev.class = backlight_class;
 	new_bd->dev.parent = parent;

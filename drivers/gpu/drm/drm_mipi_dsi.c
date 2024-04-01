@@ -1090,6 +1090,29 @@ int mipi_dsi_dcs_set_display_fps_func(struct mipi_dsi_device *dsi,
 EXPORT_SYMBOL(mipi_dsi_dcs_set_display_fps_func);
 
 /**
+ * mipi_dsi_dcs_set_display_dynamic_fps() - sets the dynamic fps function of the
+ *    display
+ * @dsi: DSI peripheral device
+ * @value: set display dynamic fps function. 0:60hz  1:90hz
+ *
+ * Return: 0 on success or a negative error code on failure.
+ */
+int mipi_dsi_dcs_set_display_dynamic_fps(struct mipi_dsi_device *dsi,
+					u8 value)
+{
+	ssize_t err;
+
+	err = mipi_dsi_dcs_write(dsi, MIPI_DCS_WRITE_DYNAMIC_FPS,
+				 &value, sizeof(value));
+
+	if (err < 0)
+		return err;
+
+	return 0;
+}
+EXPORT_SYMBOL(mipi_dsi_dcs_set_display_dynamic_fps);
+
+/**
  * mipi_dsi_dcs_set_display_brightness() - sets the brightness value of the
  *    display
  * @dsi: DSI peripheral device
