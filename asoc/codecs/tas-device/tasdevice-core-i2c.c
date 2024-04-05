@@ -162,6 +162,22 @@ static int tasdevice_i2c_probe(struct i2c_client *i2c,
 	tas_dev->client = (void *)i2c;
 	tas_dev->chip_id = id->driver_data;
 
+	tas_dev->pa_sdz0 = devm_gpiod_get_optional(tas_dev->dev, "pa-sdz0", 0);
+	if (IS_ERR(tas_dev->pa_sdz0))
+		dev_err(tas_dev->dev, "%s Can't get SDZ0 GPIO\n", __func__);
+	gpiod_direction_output(tas_dev->pa_sdz0, 1);
+
+	tas_dev->pa_sdz1 = devm_gpiod_get_optional(tas_dev->dev, "pa-sdz1", 0);
+	if (IS_ERR(tas_dev->pa_sdz1))
+		dev_err(tas_dev->dev, "%s Can't get SDZ1 GPIO\n", __func__);
+	gpiod_direction_output(tas_dev->pa_sdz1, 1);
+
+	if (tas_dev->pa_sdz0 && tas_dev->pa_sdz1) {
+		dev_err(tas_dev->dev, "%s set SDZ to high ~\n", __func__);
+		gpiod_set_value_cansleep(tas_dev->pa_sdz0, 1);
+		gpiod_set_value_cansleep(tas_dev->pa_sdz1, 1);
+	}
+
 	if (i2c->dev.of_node)
 		ret = tasdevice_i2c_parse_dt(tas_dev);
 	else {
@@ -187,6 +203,12 @@ static int tasdevice_i2c_probe(struct i2c_client *i2c,
 	}
 
 	ret = tasdevice_probe_next(tas_dev);
+	if (tas_dev->pa_sdz0 && tas_dev->pa_sdz1) {
+		dev_err(tas_dev->dev, "%s set SDZ to low ~\n", __func__);
+		gpiod_set_value_cansleep(tas_dev->pa_sdz0, 0);
+		gpiod_set_value_cansleep(tas_dev->pa_sdz1, 0);
+	}
+
 
 out:
 	if (ret < 0 && tas_dev != NULL)

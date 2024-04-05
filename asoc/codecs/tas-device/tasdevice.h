@@ -219,6 +219,8 @@ struct tasdevice_priv {
 	struct tas_control tas_ctrl;
 	struct global_addr glb_addr;
 	struct gpio_desc *reset;
+	struct gpio_desc *pa_sdz0;
+	struct gpio_desc *pa_sdz1;
 	int cur_prog;
 	int cur_conf;
 	unsigned int chip_id;

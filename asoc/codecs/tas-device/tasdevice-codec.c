@@ -113,9 +113,19 @@ static int tasdevice_dapm_event(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
+		if (tas_dev->pa_sdz0 && tas_dev->pa_sdz1) {
+			dev_info(tas_dev->dev, "%s set SDZ to high ~\n", __func__);
+			gpiod_set_value_cansleep(tas_dev->pa_sdz0, 1);
+			gpiod_set_value_cansleep(tas_dev->pa_sdz1, 1);
+		}
 		dev_info(tas_dev->dev, "SND_SOC_DAPM_POST_PMU\n");
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
+		if (tas_dev->pa_sdz0 && tas_dev->pa_sdz1) {
+			dev_info(tas_dev->dev, "%s set SDZ to low ~\n", __func__);
+			gpiod_set_value_cansleep(tas_dev->pa_sdz0, 0);
+			gpiod_set_value_cansleep(tas_dev->pa_sdz1, 0);
+		}
 		dev_info(tas_dev->dev, "SND_SOC_DAPM_PRE_PMD\n");
 		break;
 	}

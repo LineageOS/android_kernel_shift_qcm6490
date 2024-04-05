@@ -917,12 +917,12 @@ SND_SOC_DAILINK_DEFS(display_port1,
 
 SND_SOC_DAILINK_DEFS(pri_mi2s_rx,
 	DAILINK_COMP_ARRAY(COMP_CPU("msm-dai-q6-mi2s.0")),
-	DAILINK_COMP_ARRAY(COMP_CODEC("tasdevice-codec.1-004c", "tasdevice_codec")),
+	DAILINK_COMP_ARRAY(COMP_CODEC("tasdevice-codec.1-004d", "tasdevice_codec")),
 	DAILINK_COMP_ARRAY(COMP_PLATFORM("msm-pcm-routing")));
 
 SND_SOC_DAILINK_DEFS(pri_mi2s_tx,
 	DAILINK_COMP_ARRAY(COMP_CPU("msm-dai-q6-mi2s.1")),
-	DAILINK_COMP_ARRAY(COMP_CODEC("tasdevice-codec.1-004c", "tasdevice_codec")),
+	DAILINK_COMP_ARRAY(COMP_CODEC("tasdevice-codec.1-004d", "tasdevice_codec")),
 	DAILINK_COMP_ARRAY(COMP_PLATFORM("msm-pcm-routing")));
 
 SND_SOC_DAILINK_DEFS(sec_mi2s_rx,
