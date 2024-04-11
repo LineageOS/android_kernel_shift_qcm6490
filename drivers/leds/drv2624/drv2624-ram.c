@@ -3798,15 +3798,15 @@ static int drv2624_probe(struct i2c_client *client,
 		}
 	}
 	pDRV2624->mAutoCalData.mnDoneFlag = 0xFF;
-	nResult = request_firmware_nowait(THIS_MODULE, FW_ACTION_HOTPLUG,
-		RTP_BIN_FILE, &(client->dev),
-		GFP_KERNEL, pDRV2624,
-		drv2624_rtp_load);
-	if (nResult != 0) {
-		dev_err(&client->dev,
-			"%s: %u: nResult = %d: request drv2624_rtp_load error, "
-			"pls check!\n", __func__, __LINE__, nResult);
-	}
+	// nResult = request_firmware_nowait(THIS_MODULE, FW_ACTION_HOTPLUG,
+	// 	RTP_BIN_FILE, &(client->dev),
+	// 	GFP_KERNEL, pDRV2624,
+	// 	drv2624_rtp_load);
+	// if (nResult != 0) {
+	// 	dev_err(&client->dev,
+	// 		"%s: %u: nResult = %d: request drv2624_rtp_load error, "
+	// 		"pls check!\n", __func__, __LINE__, nResult);
+	// }
 #ifndef LEDS_ARCH
 ERROR1:
 	if(nResult) input_ff_destroy(&pDRV2624->led_dev);
