@@ -37,6 +37,10 @@
 
 #include "peripheral-loader.h"
 
+#ifdef MODEM_RESET_DEBUG
+#include <linux/debugfs.h>
+#endif
+
 #define DISABLE_SSR 0x9889deed
 /* If set to 0x9889deed, call to subsystem_restart_dev() returns immediately */
 static uint disable_restart_work;
@@ -198,6 +202,9 @@ struct subsys_device {
 	enum crash_status crashed;
 	int notif_state;
 	struct list_head list;
+	#ifdef MODEM_RESET_DEBUG
+	struct dentry *dentry;
+	#endif
 };
 
 static struct subsys_device *to_subsys(struct device *d)
@@ -361,11 +368,14 @@ static struct attribute *subsys_attrs[] = {
 
 ATTRIBUTE_GROUPS(subsys);
 
-struct bus_type subsys_bus_type = {
+#ifdef MODEM_RESET_DEBUG
+//struct bus_type subsys_bus_type = {
+static struct bus_type subsys_bus_type = {
+#endif
 	.name		= "msm_subsys",
 	.dev_groups	= subsys_groups,
 };
-EXPORT_SYMBOL(subsys_bus_type);
+//EXPORT_SYMBOL(subsys_bus_type);
 
 static DEFINE_IDA(subsys_ida);
 
@@ -1209,6 +1219,87 @@ void notify_proxy_unvote(struct device *device)
 }
 EXPORT_SYMBOL(notify_proxy_unvote);
 
+#ifdef MODEM_RESET_DEBUG
+static ssize_t subsys_debugfs_read(struct file *filp, char __user *ubuf,
+  size_t cnt, loff_t *ppos)
+{
+ int r;
+ char buf[40];
+ struct subsys_device *subsys = filp->private_data;
+
+ r = snprintf(buf, sizeof(buf), "%d\n", subsys->count);
+ return simple_read_from_buffer(ubuf, cnt, ppos, buf, r);
+}
+
+static ssize_t subsys_debugfs_write(struct file *filp,
+  const char __user *ubuf, size_t cnt, loff_t *ppos)
+{
+ struct subsys_device *subsys = filp->private_data;
+ char buf[10];
+ char *cmp;
+
+ cnt = min(cnt, sizeof(buf) - 1);
+ if (copy_from_user(&buf, ubuf, cnt))
+  return -EFAULT;
+ buf[cnt] = '\0';
+ cmp = strstrip(buf);
+
+ if (!strcmp(cmp, "restart")) {
+  if (subsystem_restart_dev(subsys))
+   return -EIO;
+ } else if (!strcmp(cmp, "get")) {
+  if (subsystem_get(subsys->desc->name))
+   return -EIO;
+ } else if (!strcmp(cmp, "put")) {
+  subsystem_put(subsys);
+ } else {
+  return -EINVAL;
+ }
+
+ return cnt;
+}
+
+static const struct file_operations subsys_debugfs_fops = {
+ .open = simple_open,
+ .read = subsys_debugfs_read,
+ .write = subsys_debugfs_write,
+};
+
+static struct dentry *subsys_base_dir;
+
+static int __init subsys_debugfs_init(void)
+{
+ subsys_base_dir = debugfs_create_dir("msm_subsys", NULL);
+ return !subsys_base_dir ? -ENOMEM : 0;
+}
+
+static void subsys_debugfs_exit(void)
+{
+ debugfs_remove_recursive(subsys_base_dir);
+}
+
+static int subsys_debugfs_add(struct subsys_device *subsys)
+{
+ if (!subsys_base_dir)
+  return -ENOMEM;
+
+ subsys->dentry = debugfs_create_file(subsys->desc->name,
+    S_IRUGO | S_IWUSR, subsys_base_dir,
+    subsys, &subsys_debugfs_fops);
+ return !subsys->dentry ? -ENOMEM : 0;
+}
+
+static void subsys_debugfs_remove(struct subsys_device *subsys)
+{
+ debugfs_remove(subsys->dentry);
+}
+#else
+static int __init subsys_debugfs_init(void) { return 0; };
+static void subsys_debugfs_exit(void) { }
+static int subsys_debugfs_add(struct subsys_device *subsys) { return 0; }
+static void subsys_debugfs_remove(struct subsys_device *subsys) { }
+#endif
+
 void notify_before_auth_and_reset(struct device *device)
 {
 	struct subsys_device *dev = desc_to_subsys(device);
@@ -1488,8 +1579,20 @@ struct subsys_device *subsys_register(struct subsys_desc *desc)
 
 	mutex_init(&subsys->track.lock);
 
+#ifdef MODEM_RESET_DEBUG
+	ret = subsys_debugfs_add(subsys);
+	if (ret) {
+		ida_simple_remove(&subsys_ida, subsys->id);
+		kfree(subsys);
+		return ERR_PTR(ret);
+	}
+#endif
+
 	ret = device_register(&subsys->dev);
 	if (ret) {
+#ifdef MODEM_RESET_DEBUG
+		subsys_debugfs_remove(subsys);
+#endif
 		put_device(&subsys->dev);
 		return ERR_PTR(ret);
 	}
@@ -1553,6 +1656,9 @@ err_parse_device_tree:
 	subsys_char_device_remove(subsys);
 err_register:
 	wakeup_source_unregister(subsys->ssr_wlock);
+#ifdef MODEM_RESET_DEBUG
+	subsys_debugfs_remove(subsys);
+#endif
 err_wakeup_src_register:
 	device_unregister(&subsys->dev);
 	return ERR_PTR(ret);
@@ -1581,6 +1687,9 @@ void subsys_unregister(struct subsys_device *subsys)
 		WARN_ON(subsys->count);
 		device_unregister(&subsys->dev);
 		mutex_unlock(&subsys->track.lock);
+#ifdef MODEM_RESET_DEBUG
+		subsys_debugfs_remove(subsys);
+#endif
 		subsys_char_device_remove(subsys);
 		sysmon_notifier_unregister(subsys->desc);
 		if (subsys->desc->edge)
@@ -1623,6 +1732,12 @@ static int __init subsys_restart_init(void)
 	if (ret)
 		goto err_bus;
 
+#ifdef MODEM_RESET_DEBUG
+	ret = subsys_debugfs_init();
+	if (ret)
+		goto err_debugfs;
+#endif
+
 	char_class = class_create(THIS_MODULE, "subsys");
 	if (IS_ERR(char_class)) {
 		ret = -ENOMEM;
@@ -1639,6 +1754,10 @@ static int __init subsys_restart_init(void)
 err_soc:
 	class_destroy(char_class);
 err_class:
+#ifdef MODEM_RESET_DEBUG
+	subsys_debugfs_exit();
+err_debugfs:
+#endif
 	bus_unregister(&subsys_bus_type);
 err_bus:
 	destroy_workqueue(ssr_wq);
