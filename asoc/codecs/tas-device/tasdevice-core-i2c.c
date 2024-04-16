@@ -203,11 +203,13 @@ static int tasdevice_i2c_probe(struct i2c_client *i2c,
 	}
 
 	ret = tasdevice_probe_next(tas_dev);
+	/*
 	if (tas_dev->pa_sdz0 && tas_dev->pa_sdz1) {
 		dev_err(tas_dev->dev, "%s set SDZ to low ~\n", __func__);
 		gpiod_set_value_cansleep(tas_dev->pa_sdz0, 0);
 		gpiod_set_value_cansleep(tas_dev->pa_sdz1, 0);
 	}
+	*/
 
 
 out:
