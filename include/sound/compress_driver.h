@@ -71,7 +71,7 @@ struct snd_compr_stream {
 	enum snd_compr_direction direction;
 	bool metadata_set;
 	bool next_track;
-	bool pause_in_draining;
+	//bool pause_in_draining;
 	void *private_data;
 #ifdef CONFIG_AUDIO_QGKI
 	struct snd_soc_pcm_runtime *be;
@@ -153,7 +153,7 @@ struct snd_compr {
 	unsigned int direction;
 	struct mutex lock;
 	int device;
-	bool use_pause_in_draining;
+	//bool use_pause_in_draining;
 #ifdef CONFIG_SND_VERBOSE_PROCFS
 	/* private: */
 	char id[64];
