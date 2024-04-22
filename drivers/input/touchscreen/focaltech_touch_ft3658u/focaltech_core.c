@@ -2221,4 +2221,5 @@ module_exit(fts_ts_exit);
 
 MODULE_AUTHOR("FocalTech Driver Team");
 MODULE_DESCRIPTION("FocalTech Touchscreen Driver");
+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
 MODULE_LICENSE("GPL v2");

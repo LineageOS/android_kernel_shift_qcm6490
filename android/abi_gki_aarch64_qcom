@@ -2849,7 +2849,6 @@
   vfs_listxattr
   vfs_mkdir
   vfs_rename
-  vfs_read
   vfs_rmdir
   vfs_setxattr
   vfs_unlink
