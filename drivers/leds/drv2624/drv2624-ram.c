@@ -39,6 +39,7 @@ static struct drv2624_data *g_DRV2625data = NULL;
 
 static int drv2624_stop(struct drv2624_data *pDRV2624);
 static int drv2624_rtpvibrate(struct drv2624_data *pDRV26xx, unsigned int waveform_id);
+static int drv2624_playEffect(struct drv2624_data *pDRV2624);
 module_param_string(haptic, haptic_mode,
 	sizeof(haptic_mode), 0600);
 
@@ -2451,6 +2452,79 @@ drv2624_diag_show(struct device *dev,
 	return len;
 }
 
+// static ssize_t
+// drv2624_ramlib_play_show(struct device *dev,
+// 	struct device_attribute *attr,
+// 	char *buf)
+// {
+// 	int ret = 0;
+// #ifdef LEDS_ARCH
+// 	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+// #else
+// 	struct input_dev *led_cdev = dev_get_drvdata(dev);
+// #endif
+// 	struct drv2624_data *pDRV2624 = container_of(led_cdev,
+// 												struct drv2624_data, led_dev);
+
+// 	;
+
+
+// 	return ret;
+// }
+
+static ssize_t drv2624_ramlib_play_store(struct device *dev,
+	struct device_attribute *attr,
+	const char *buf, size_t count)
+{
+	int ret = 0;
+#ifdef LEDS_ARCH
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+#else
+	struct input_dev *led_cdev = dev_get_drvdata(dev);
+#endif
+	struct drv2624_data *pDRV2624 = container_of(led_cdev,
+												struct drv2624_data, led_dev);
+	unsigned int val[3] = {0};
+
+	if(pDRV2624){
+		// w:waveseq	p:playeffect_libnum n:times
+		if (sscanf(buf, "w:%hhx p:%hhx n:%hhx", &val[0], &val[1], &val[2]) == 3){
+			ret = drv2624_reg_write(pDRV2624, DRV2625_REG_SEQUENCER_1, val[1]);
+			if(ret < 0){
+				dev_err(pDRV2624->dev, "set seq err\n");
+			}
+			ret = drv2624_reg_write(pDRV2624, DRV2625_REG_SEQ_LOOP_1, val[2]%4);
+			if(ret < 0){
+				dev_err(pDRV2624->dev, "set seq loop err\n");
+			}
+
+			ret = drv2624_stop(pDRV2624);
+			if(ret < 0){
+				dev_err(pDRV2624->dev, "can not stop drv2624\n");
+				return count;
+			}
+
+			ret = drv2624_playEffect(pDRV2624);
+			if(ret < 0){
+				dev_err(pDRV2624->dev, "set playEffect err\n");
+			}
+		}
+		else{
+			dev_err(pDRV2624->dev, "%s:%d kstr err input!\n", __func__, __LINE__);
+		}
+		
+
+		if(ret < 0){
+			dev_err(pDRV2624->dev, "sequence error\n");
+		}
+	} else {
+		pr_err("%s:%u: drv2624 is NULL\n", __func__, __LINE__);
+	}
+
+
+	return count;
+}
+
 static ssize_t
 drv2624_reg_show(struct device *dev,
 	struct device_attribute *attr,
@@ -2568,7 +2642,7 @@ static ssize_t drv2624_reg_store(struct device *dev,
 			__func__, __LINE__, nResult);
 	}
 
-	return nResult;
+	return count;
 }
 
 static ssize_t
@@ -3378,6 +3452,7 @@ static DEVICE_ATTR(rtpbininfo_list, 0664, drv2624_rtpbininfo_list_show,
 static DEVICE_ATTR(calib, 0664, drv2624_calib_show, drv2624_calib_store);
 static DEVICE_ATTR(diag, 0664, drv2624_diag_show, drv2624_diag_store);
 static DEVICE_ATTR(reg, 0664, drv2624_reg_show, drv2624_reg_store);
+static DEVICE_ATTR(ramlib, 0664, NULL, drv2624_ramlib_play_store);
 static DEVICE_ATTR(CalComp, 0664, drv2624_CalComp_show, drv2624_CalComp_store);
 static DEVICE_ATTR(CalBemf, 0664, drv2624_CalBemf_show, drv2624_CalBemf_store);
 static DEVICE_ATTR(CalGain, 0664, drv2624_CalGain_show, drv2624_CalGain_store);
@@ -3398,7 +3473,7 @@ static struct attribute *drv2624_dev_fs_attrs[] = {
 	&dev_attr_rtpbininfo_list.attr,
 	&dev_attr_gain.attr,
 	&dev_attr_calib.attr,
-	// &dev_attr_enable.attr,
+	&dev_attr_ramlib.attr,
 	&dev_attr_diag.attr,
 	&dev_attr_reg.attr,
 	&dev_attr_CalComp.attr,
