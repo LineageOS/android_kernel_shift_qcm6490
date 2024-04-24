@@ -9,6 +9,15 @@
 #include "cam_sensor_core.h"
 #include "camera_main.h"
 
+#include <linux/i2c-dev.h>
+#include <linux/miscdevice.h>
+#include <linux/ioctl.h>
+#include <linux/string.h>
+
+extern char cam2_type_str[32];
+extern char cam0_type_str[32];
+extern char cam1_type_str[32];
+
 static int cam_sensor_subdev_close_internal(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh)
 {
@@ -243,6 +252,66 @@ free_s_ctrl:
 	return rc;
 }
 
+struct miscdevice caminfo_misc_device;
+
+static int caminfo_misc_open(struct inode* pINode, struct file* pFile)
+{
+	return 0;
+}
+
+static long caminfo_misc_ioctl(struct file* pFile, unsigned int uiCmd, unsigned long ulArg)
+{
+	return 0;
+}
+
+static int caminfo_misc_release(struct inode* pINode, struct file* pFile){
+	return 0;
+}
+
+static const struct file_operations caminfo_misc_fops ={
+	.owner			= THIS_MODULE,
+	.unlocked_ioctl		= caminfo_misc_ioctl,
+	.open			= caminfo_misc_open,
+	.release		= caminfo_misc_release,
+};
+
+static ssize_t rear_aux_camera_type_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int ret = 0;
+	ret = sprintf(buf, "%s", cam2_type_str);
+	return ret;
+}
+
+static DEVICE_ATTR(rear_aux_camera_type, 0664, rear_aux_camera_type_show, NULL);
+
+static ssize_t rear_camera_type_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int ret = 0;
+	ret = sprintf(buf, "%s", cam0_type_str);
+	return ret;
+}
+
+static DEVICE_ATTR(rear_camera_type, 0664, rear_camera_type_show, NULL);
+
+static ssize_t front_camera_type_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int ret = 0;
+	ret = sprintf(buf, "%s", cam1_type_str);
+	return ret;
+}
+
+static DEVICE_ATTR(front_camera_type, 0664, front_camera_type_show, NULL);
+
+static struct attribute *caminfo_attributes[] = {
+	&dev_attr_rear_aux_camera_type.attr,
+	&dev_attr_rear_camera_type.attr,
+	&dev_attr_front_camera_type.attr,
+	NULL,
+};
+static struct attribute_group caminfo_attr_group = {
+    .attrs = caminfo_attributes,
+};
+
 static int cam_sensor_component_bind(struct device *dev,
 	struct device *master_dev, void *data)
 {
@@ -325,6 +394,22 @@ static int cam_sensor_component_bind(struct device *dev,
 	platform_set_drvdata(pdev, s_ctrl);
 	s_ctrl->sensor_state = CAM_SENSOR_INIT;
 	CAM_DBG(CAM_SENSOR, "Component bound successfully");
+
+	if(!strncmp(s_ctrl->of_node->name, "qcom,cam-sensor0", 16)){
+		caminfo_misc_device.fops = &caminfo_misc_fops;
+		caminfo_misc_device.minor = MISC_DYNAMIC_MINOR;
+		caminfo_misc_device.name = "caminfo";
+
+		misc_register(&caminfo_misc_device);
+		dev_set_drvdata(caminfo_misc_device.this_device, s_ctrl->io_master_info.client);
+
+		rc =  sysfs_create_group(&caminfo_misc_device.this_device->kobj, &caminfo_attr_group);
+		if(rc < 0){
+			pr_err("IN %s : %d : Fail to Create sys caminfo attribute.\n",__func__,__LINE__);
+		}else{
+			pr_err("IN %s : %d : success to Create sys caminfo attribute.\n",__func__,__LINE__);
+		}
+	}
 
 	return rc;
 
