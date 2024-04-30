@@ -69,6 +69,8 @@ enum {
 /* MIPI DCS commands */
 enum {
 	MIPI_DCS_NONE			= 0x00,
+	MIPI_DCS_WRITE_BLUE_LIGHT_FILTER= 0x66,
+	MIPI_DCS_READ_BLUE_LIGHT_FILTER	= 0x67,
 	MIPI_DCS_WRITE_FPS_CONTROL	= 0x6E,
 	MIPI_DCS_READ_FPS_CONTROL	= 0x6F,
 	MIPI_DCS_WRITE_DYNAMIC_FPS	= 0x70,
@@ -364,6 +366,8 @@ int dsi_panel_post_unprepare(struct dsi_panel *panel);
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl);
 
 int dsi_panel_get_display_reg_value(struct dsi_panel *panel, u8 cmd, u8 *value);
+
+int dsi_panel_set_display_reg_value(struct dsi_panel *panel, u8 cmd, u8 value);
 
 int dsi_panel_update_display_fps(struct dsi_panel *panel, u8 value);
 

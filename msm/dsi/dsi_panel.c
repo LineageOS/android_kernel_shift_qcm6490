@@ -625,6 +625,34 @@ int dsi_panel_get_display_reg_value(struct dsi_panel *panel, u8 cmd,
 	return rc;
 }
 
+int dsi_panel_set_display_reg_value(struct dsi_panel *panel, u8 cmd,
+	u8 value)
+{
+	int rc = 0;
+	unsigned long mode_flags = 0;
+	struct mipi_dsi_device *dsi = NULL;
+
+	if (!panel || (value > 0xff)) {
+		DSI_ERR("invalid params\n");
+		return -EINVAL;
+	}
+
+	dsi = &panel->mipi_device;
+	if (unlikely(panel->bl_config.lp_mode)) {
+		mode_flags = dsi->mode_flags;
+		dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+	}
+
+	rc = mipi_dsi_dcs_set_display_reg_value(dsi, cmd, value);
+	if (rc < 0)
+		DSI_ERR("%s: failed.\n", __func__);
+
+	if (unlikely(panel->bl_config.lp_mode))
+		dsi->mode_flags = mode_flags;
+
+	return rc;
+}
+
 int dsi_panel_update_display_fps(struct dsi_panel *panel,
 	u8 value)
 {

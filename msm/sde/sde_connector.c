@@ -210,6 +210,24 @@ static int sde_backlight_device_get_display_reg_value(u8 cmd, u8 *value)
 	return rc;
 }
 
+static int sde_backlight_device_set_display_reg_value(u8 cmd, u8 value)
+{
+	int rc = 0;
+	struct sde_connector *c_conn = sim_global_c_conn;
+	struct dsi_display *dsi_display = c_conn->display;
+	//struct dsi_panel *panel = c_conn->display->panel;
+	struct dsi_panel *panel = dsi_display->panel;
+	struct dsi_backlight_config *bl = &panel->bl_config;
+
+
+	if (bl->type == DSI_BACKLIGHT_DCS)
+		rc = dsi_panel_set_display_reg_value(panel, cmd, value);
+	if (rc < 0)
+		SDE_ERROR("Failed to set display reg[0x%02x] value\n", cmd);
+
+	return rc;
+}
+
 static int sde_backlight_device_update_fps(u8 value)
 {
 	int rc = 0;
@@ -381,9 +399,49 @@ static ssize_t dynamic_fps_store(struct device *dev,
 	return count;
 }
 
+
+static ssize_t eye_protect_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int rc;
+	int count = 0;
+	u8 value;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_READ_BLUE_LIGHT_FILTER, &value);
+	mutex_unlock(&bl_ops_lock);
+
+	if (rc)
+		count = sprintf(buf, "get value fail!\n");
+	else
+		count = sprintf(buf, "0x%02x\n", value);
+
+	return count;
+}
+
+static ssize_t eye_protect_store(struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_set_display_reg_value(MIPI_DCS_WRITE_BLUE_LIGHT_FILTER, value);
+	mutex_unlock(&bl_ops_lock);
+
+	return rc ? rc : count;
+
+	return count;
+}
+
 static DEVICE_ATTR(bl_fps_func, 0664, bl_fps_func_show, bl_fps_func_store);
 static DEVICE_ATTR(bl_hbm_mode, 0664, bl_hbm_mode_show, bl_hbm_mode_store);
 static DEVICE_ATTR(dynamic_fps, 0664, dynamic_fps_show, dynamic_fps_store);
+static DEVICE_ATTR(eye_protect, 0664, eye_protect_show, eye_protect_store);
 
 
 static const struct backlight_ops sde_backlight_device_ops = {
@@ -502,7 +560,13 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 		class_destroy(sim_display_class);
 		return ret;
 	}
-
+	ret = device_create_file(sim_display_dev, &dev_attr_eye_protect);
+	if(ret)
+	{
+		SDE_ERROR("panel creat eye_protect sysfs failed, ret:%d \n", ret);
+		class_destroy(sim_display_class);
+		return ret;
+	}
 
 	/**
 	 * In TVM, thermal cooling device is not enabled. Registering with dummy
