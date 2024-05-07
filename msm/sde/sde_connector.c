@@ -438,10 +438,53 @@ static ssize_t eye_protect_store(struct device *dev,
 	return count;
 }
 
+
+static ssize_t color_invert_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int rc;
+	int count = 0;
+	u8 value;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_READ_BLUE_LIGHT_FILTER, &value);
+	mutex_unlock(&bl_ops_lock);
+
+	if (rc)
+		count = sprintf(buf, "get value fail!\n");
+	else
+		count = sprintf(buf, "0x%02x\n", value);
+
+	return count;
+}
+
+static ssize_t color_invert_store(struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	mutex_lock(&bl_ops_lock);
+	if (value)
+		rc = sde_backlight_device_set_display_reg_value(MIPI_DCS_ENTER_INVERT_MODE, 0);
+	else
+		rc = sde_backlight_device_set_display_reg_value(MIPI_DCS_EXIT_INVERT_MODE, 0);
+	mutex_unlock(&bl_ops_lock);
+
+	return rc ? rc : count;
+
+	return count;
+}
+
 static DEVICE_ATTR(bl_fps_func, 0664, bl_fps_func_show, bl_fps_func_store);
 static DEVICE_ATTR(bl_hbm_mode, 0664, bl_hbm_mode_show, bl_hbm_mode_store);
 static DEVICE_ATTR(dynamic_fps, 0664, dynamic_fps_show, dynamic_fps_store);
 static DEVICE_ATTR(eye_protect, 0664, eye_protect_show, eye_protect_store);
+static DEVICE_ATTR(color_invert, 0664, color_invert_show, color_invert_store);
 
 
 static const struct backlight_ops sde_backlight_device_ops = {
@@ -564,6 +607,13 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 	if(ret)
 	{
 		SDE_ERROR("panel creat eye_protect sysfs failed, ret:%d \n", ret);
+		class_destroy(sim_display_class);
+		return ret;
+	}
+	ret = device_create_file(sim_display_dev, &dev_attr_color_invert);
+	if(ret)
+	{
+		SDE_ERROR("panel creat color_invert sysfs failed, ret:%d \n", ret);
 		class_destroy(sim_display_class);
 		return ret;
 	}
