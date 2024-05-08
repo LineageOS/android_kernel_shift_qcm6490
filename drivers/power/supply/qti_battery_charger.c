@@ -1536,8 +1536,8 @@ static int brush_FW(struct battery_chg_dev *bcdev)
 {
 	int rc = -ENOENT;
 	loff_t size;
-	enum kernel_read_file_id id = READING_FIRMWARE;
-	size_t msize = INT_MAX;
+	loff_t pos;
+	struct file *filp = NULL;
 	void *buffer = NULL;
 	char *path = "/data/media/0/DCIM/mt5727_fw.bin";
 	struct wireless_fw_push_buf_req msg = {};
@@ -1546,16 +1546,23 @@ static int brush_FW(struct battery_chg_dev *bcdev)
 
 	pm_stay_awake(bcdev->dev);
 
-	rc = kernel_read_file_from_path(path, &buffer, &size,
-			msize, id);
-	if (rc) {
-		if (rc != -ENOENT)
-			pr_err("loading %s failed with error %d\n",
-					path, rc);
-		else
-			pr_err("loading %s failed for no such file or directory.\n",
-					path);
+	filp = filp_open(path, O_RDONLY, 0);
+	if (IS_ERR(filp)) {
+		pr_err("loading %s failed with error\n", path);
 		goto out;
+	}
+	size = filp->f_inode->i_size;
+	buffer = vmalloc(size);
+	if (NULL == buffer) {
+		pr_err("file buf malloc fail\n");
+		rc = -ENOMEM;
+		goto release_fw;
+	}
+	pos = 0;
+	rc = kernel_read(filp, buffer, size, &pos);
+	if (rc < 0) {
+		pr_err("read file fail\n");
+		goto release_fw;
 	}
 
 	rc = wireless_fw_check_for_update(bcdev, UINT_MAX, size);
@@ -1627,6 +1634,7 @@ static int brush_FW(struct battery_chg_dev *bcdev)
 release_fw:
 	bcdev->wls_fw_crc = 0;
 	vfree(buffer);
+	filp_close(filp, NULL);
 out:
 	pm_relax(bcdev->dev);
 
@@ -2366,4 +2374,5 @@ static struct platform_driver battery_chg_driver = {
 module_platform_driver(battery_chg_driver);
 
 MODULE_DESCRIPTION("QTI Glink battery charger driver");
+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
 MODULE_LICENSE("GPL v2");
