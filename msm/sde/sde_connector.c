@@ -408,7 +408,7 @@ static ssize_t eye_protect_show(struct device *dev,
 	u8 value;
 
 	mutex_lock(&bl_ops_lock);
-	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_READ_BLUE_LIGHT_FILTER, &value);
+	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_READ_PAPER_MODE, &value);
 	mutex_unlock(&bl_ops_lock);
 
 	if (rc)
@@ -430,7 +430,7 @@ static ssize_t eye_protect_store(struct device *dev,
 		return rc;
 
 	mutex_lock(&bl_ops_lock);
-	rc = sde_backlight_device_set_display_reg_value(MIPI_DCS_WRITE_BLUE_LIGHT_FILTER, value);
+	rc = sde_backlight_device_set_display_reg_value(MIPI_DCS_WRITE_PAPER_MODE, value);
 	mutex_unlock(&bl_ops_lock);
 
 	return rc ? rc : count;
@@ -444,10 +444,10 @@ static ssize_t color_invert_show(struct device *dev,
 {
 	int rc;
 	int count = 0;
-	u8 value;
+	u8 value = 0;
 
 	mutex_lock(&bl_ops_lock);
-	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_READ_BLUE_LIGHT_FILTER, &value);
+	rc = -1;
 	mutex_unlock(&bl_ops_lock);
 
 	if (rc)
