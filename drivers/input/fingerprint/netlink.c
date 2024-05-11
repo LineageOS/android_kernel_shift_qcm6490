@@ -10,6 +10,7 @@
 #include <linux/types.h>
 #include <net/sock.h>
 #include <net/netlink.h>
+#include <linux/gpio.h>
 #include "gf_spi.h"
 
 #define NETLINK_TEST 25

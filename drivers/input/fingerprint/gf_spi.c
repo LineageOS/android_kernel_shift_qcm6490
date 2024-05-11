@@ -805,7 +805,8 @@ static int gf_remove(struct platform_device *pdev)
 {
 	struct gf_dev *gf_dev = &gf;
 
-	wakeup_source_destroy(fp_wakesource);
+	// wakeup_source_destroy(fp_wakesource);
+	wakeup_source_unregister(fp_wakesource);
 	fb_unregister_client(&gf_dev->notifier);
 	if (gf_dev->input)
 		input_unregister_device(gf_dev->input);
