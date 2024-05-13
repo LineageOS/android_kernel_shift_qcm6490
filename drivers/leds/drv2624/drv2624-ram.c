@@ -3419,7 +3419,7 @@ static ssize_t drv2624_state_store(struct device *dev,
 	}
 	drv2624_stop(pDRV2624);
 	
-	nResult = drv2624_change_mode(pDRV2624, MODE_WAVEFORM_SEQUENCER);
+	nResult = drv2624_change_mode(pDRV2624, MODE_RTP);
 	if (nResult < 0) {
 		dev_dbg(pDRV2624->dev, "%s: change_mode nResult = %d\n",
 			__func__, nResult);
