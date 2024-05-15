@@ -3898,8 +3898,7 @@ ERROR:
 			cancel_work_sync(&pDRV2624->vibrator_work);
 			if(bLedRegister) {
 #ifdef LEDS_ARCH
-				devm_led_classdev_unregister(&pDRV2624->client->dev,
-					&pDRV2624->led_dev);
+				led_classdev_unregister(&pDRV2624->led_dev);
 #else
 				input_unregister_device(&pDRV2624->led_dev);
 #endif
@@ -3945,8 +3944,7 @@ static int drv2624_remove(struct i2c_client *client)
 		mutex_destroy(&pDRV2624->reg_lock);
 		mutex_destroy(&pDRV2624->haptic_lock);
 #ifdef LEDS_ARCH
-		devm_led_classdev_unregister(&pDRV2624->client->dev,
-			&pDRV2624->led_dev);
+		led_classdev_unregister(&pDRV2624->led_dev);
 #else
 		input_unregister_device(&pDRV2624->led_dev);
 		input_ff_destroy(&pDRV2624->led_dev);
