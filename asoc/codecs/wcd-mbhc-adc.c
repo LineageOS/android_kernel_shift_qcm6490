@@ -23,7 +23,7 @@
 #include <asoc/wcd-mbhc-v2.h>
 #include <asoc/pdata.h>
 
-#define WCD_MBHC_ADC_HS_THRESHOLD_MV    1780
+#define WCD_MBHC_ADC_HS_THRESHOLD_MV    1800
 #define WCD_MBHC_ADC_HPH_THRESHOLD_MV   75
 #define WCD_MBHC_ADC_MICBIAS_MV         1800
 #define WCD_MBHC_FAKE_INS_RETRY         4
@@ -334,6 +334,8 @@ static int wcd_check_cross_conn(struct wcd_mbhc *mbhc)
 		ret = hphr_adc_res;
 		goto done;
 	}
+
+	pr_debug("Rlau-%s: adc_res-L:%dmV, R:%dmV\n", __func__, hphl_adc_res, hphr_adc_res);
 
 	/* Update cross connection threshold voltages if needed */
 	if (mbhc->mbhc_cb->update_cross_conn_thr)
@@ -670,6 +672,8 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	int cross_conn;
 	int try = 0;
 	int hs_threshold, micbias_mv;
+	bool try_swap = false;
+	int test_i = 0;
 
 	pr_debug("%s: enter\n", __func__);
 
@@ -687,6 +691,7 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	/* Check for cross connection */
 	do {
 		cross_conn = wcd_check_cross_conn(mbhc);
+		pr_debug("Rlau-%s: cross_conn:%d\n", __func__, cross_conn);
 		try++;
 	} while (try < mbhc->swap_thr);
 
@@ -699,6 +704,16 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	/* Find plug type */
 	output_mv = wcd_measure_adc_continuous(mbhc);
 	plug_type = wcd_mbhc_get_plug_from_adc(mbhc, output_mv);
+	pr_debug("Rlau-%s: continuous output_mv:%d, plug_type:%d\n", __func__, output_mv, plug_type);
+
+	/* maybe detection error!!! try swap */
+	if(!cross_conn && !output_mv) {
+		msleep(100);
+		pr_debug("Rlau-%s: maybe detection error! try swap\n", __func__);
+		plug_type = MBHC_PLUG_TYPE_GND_MIC_SWAP;
+		try_swap = true;
+		goto correct_plug_type;
+	}
 
 	/*
 	 * Report plug type if it is either headset or headphone
@@ -734,6 +749,7 @@ correct_plug_type:
 
 	timeout = jiffies + msecs_to_jiffies(HS_DETECT_PLUG_TIME_MS);
 	while (!time_after(jiffies, timeout)) {
+		test_i ++;
 		if (mbhc->hs_detect_work_stop) {
 			pr_debug("%s: stop requested: %d\n", __func__,
 					mbhc->hs_detect_work_stop);
@@ -762,6 +778,7 @@ correct_plug_type:
 		 * sometime and re-check stop request again.
 		 */
 		plug_type = wcd_mbhc_get_plug_from_adc(mbhc, output_mv);
+		pr_debug("Rlau-%s: %d--output_mv:%d, plug_type:%d\n", __func__, test_i, output_mv, plug_type);
 
 		if ((output_mv > hs_threshold) &&
 		    (spl_hs_count < WCD_MBHC_SPL_HS_CNT)) {
@@ -785,11 +802,14 @@ correct_plug_type:
 		    (!is_pa_on)) {
 			/* Check for cross connection*/
 			ret = wcd_check_cross_conn(mbhc);
+			pr_debug("Rlau-%s: %d--cross_conn:%d\n", __func__, test_i, ret);
 			if (ret < 0)
 				continue;
 			else if (ret > 0) {
 				pt_gnd_mic_swap_cnt++;
 				no_gnd_mic_swap_cnt = 0;
+				pr_debug("Rlau-%s: %d--no:%d, pt:%d\n",
+						 __func__, test_i, no_gnd_mic_swap_cnt, pt_gnd_mic_swap_cnt);
 				if (pt_gnd_mic_swap_cnt <
 						mbhc->swap_thr) {
 					continue;
@@ -811,7 +831,20 @@ correct_plug_type:
 				pt_gnd_mic_swap_cnt = 0;
 				plug_type = wcd_mbhc_get_plug_from_adc(
 						mbhc, output_mv);
-				if ((no_gnd_mic_swap_cnt <
+				pr_debug("Rlau-%s: %d--no:%d, pt:%d, plug_type:%d\n",
+						 __func__, test_i, no_gnd_mic_swap_cnt, pt_gnd_mic_swap_cnt, plug_type);
+				if(try_swap && (no_gnd_mic_swap_cnt == mbhc->swap_thr)) {
+					pr_debug("Rlau-%s: %d--try swap US_EU\n", __func__, test_i);
+					try_swap = false;
+					no_gnd_mic_swap_cnt = 0;
+					pt_gnd_mic_swap_cnt = 0;
+					if (mbhc->mbhc_cfg->swap_gnd_mic &&
+						mbhc->mbhc_cfg->swap_gnd_mic(component,
+						true)) {
+						pr_debug("Rlau-%s: %d--try swap US_EU success\n", __func__, test_i);
+						continue;
+					}
+				} else if ((no_gnd_mic_swap_cnt <
 				    mbhc->swap_thr) &&
 				    (spl_hs_count != WCD_MBHC_SPL_HS_CNT)) {
 					continue;
@@ -840,6 +873,7 @@ correct_plug_type:
 			plug_type = MBHC_PLUG_TYPE_HIGH_HPH;
 			wrk_complete = true;
 		} else {
+			pr_debug("Rlau-%s: %d--cable might be headset: %d\n", __func__, test_i, plug_type);
 			pr_debug("%s: cable might be headset: %d\n", __func__,
 				 plug_type);
 			if (plug_type != MBHC_PLUG_TYPE_GND_MIC_SWAP) {
