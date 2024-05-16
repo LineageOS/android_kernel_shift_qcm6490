@@ -10,7 +10,7 @@ ifneq ($(TMS_DEVICES), y)
 TMS_DEVICES = $(findstring m, $(CONFIG_TMS_NFC_DEVICE) $(CONFIG_TMS_ESE_DEVICE))
 endif
 $(info   TMS_DEVICES = $(TMS_DEVICES))
-obj-$(TMS_DEVICES)       += tms_device_modules.o
+obj-$(CONFIG_TMS_NFC_DEVICE)       += tms_device_modules.o
 tms_device_modules-objs  := tms_common.o
 
 # TMS NFC driver
