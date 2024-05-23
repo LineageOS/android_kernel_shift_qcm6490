@@ -70,7 +70,9 @@
 * Global variable or extern global variabls/functions
 *****************************************************************************/
 struct fts_ts_data *fts_data;
-
+static bool ts_hbm_suspend = FALSE;
+static bool ts_wake_complete = FALSE;
+static bool ts_enter_suspend = TRUE;
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
@@ -513,6 +515,33 @@ static int fts_input_report_b(struct fts_ts_data *ts_data, struct ts_event *even
 
         touch_event_coordinate = true;
         if (EVENT_DOWN(events[i].flag)) {
+          if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
+                if ((events[i].x <= 630) && (events[i].x >= 450) &&
+                            (events[i].y <= 2270) && (events[i].y >= 2085)) {
+	            input_report_key(input_dev, KEY_WAKEUP, 1);
+                    input_sync(input_dev);
+	            input_report_key(input_dev, KEY_WAKEUP, 0);
+                    input_sync(input_dev);
+                    input_mt_slot(input_dev, events[i].id);
+                    input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, true);
+#if FTS_REPORT_PRESSURE_EN
+                    input_report_abs(input_dev, ABS_MT_PRESSURE, events[i].p);
+#endif
+                    input_report_abs(input_dev, ABS_MT_TOUCH_MAJOR, events[i].area);
+                    input_report_abs(input_dev, ABS_MT_POSITION_X, events[i].x);
+                    input_report_abs(input_dev, ABS_MT_POSITION_Y, events[i].y);
+
+                    touch_down_point_cur |= (1 << events[i].id);
+                    touch_point_pre |= (1 << events[i].id);
+
+                    if ((ts_data->log_level >= 2) ||
+                        ((1 == ts_data->log_level) && (FTS_TOUCH_DOWN == events[i].flag))) {
+                        FTS_DEBUG("[B]P%d(%d, %d)[p:%d,tm:%d] DOWN!",
+                                  events[i].id, events[i].x, events[i].y,
+                                  events[i].p, events[i].area);
+                    }
+                }
+          } else {
             input_mt_slot(input_dev, events[i].id);
             input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, true);
 #if FTS_REPORT_PRESSURE_EN
@@ -531,11 +560,22 @@ static int fts_input_report_b(struct fts_ts_data *ts_data, struct ts_event *even
                           events[i].id, events[i].x, events[i].y,
                           events[i].p, events[i].area);
             }
+          }
         } else {
-            input_mt_slot(input_dev, events[i].id);
-            input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
-            touch_point_pre &= ~(1 << events[i].id);
-            if (ts_data->log_level >= 1) FTS_DEBUG("[B]P%d UP!", events[i].id);
+            if (ts_hbm_suspend) {
+                if ((events[i].x <= 630) && (events[i].x >= 450) &&
+                            (events[i].y <= 2270) && (events[i].y >= 2085)) {
+                    input_mt_slot(input_dev, events[i].id);
+                    input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
+                    touch_point_pre &= ~(1 << events[i].id);
+                    if (ts_data->log_level >= 1) FTS_DEBUG("[B]P%d UP!", events[i].id);
+                }
+            } else {
+                input_mt_slot(input_dev, events[i].id);
+                input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
+                touch_point_pre &= ~(1 << events[i].id);
+                if (ts_data->log_level >= 1) FTS_DEBUG("[B]P%d UP!", events[i].id);
+            }
         }
     }
 
@@ -549,12 +589,18 @@ static int fts_input_report_b(struct fts_ts_data *ts_data, struct ts_event *even
         }
     }
 
-    if (touch_down_point_cur)
+    if (touch_down_point_cur) {
         input_report_key(input_dev, BTN_TOUCH, 1);
-    else if (touch_event_coordinate || ts_data->touch_points) {
+        if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
+            ts_enter_suspend = FALSE;
+        }
+    } else if (touch_event_coordinate || ts_data->touch_points) {
         if (ts_data->touch_points && (ts_data->log_level >= 1))
             FTS_DEBUG("[B]Points All Up!");
         input_report_key(input_dev, BTN_TOUCH, 0);
+        if (!ts_wake_complete && ts_data->ts_wakeup_fp) {
+            queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
+        }
     }
 
     ts_data->touch_points = touch_down_point_cur;
@@ -576,6 +622,31 @@ static int fts_input_report_a(struct fts_ts_data *ts_data, struct ts_event *even
 
         touch_event_coordinate = true;
         if (EVENT_DOWN(events[i].flag)) {
+          if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
+                if ((events[i].x <= 630) && (events[i].x >= 450) &&
+                            (events[i].y <= 2270) && (events[i].y >= 2085)) {
+	            input_report_key(input_dev, KEY_WAKEUP, 1);
+                    input_sync(input_dev);
+	            input_report_key(input_dev, KEY_WAKEUP, 0);
+                    input_sync(input_dev);
+                    input_report_abs(input_dev, ABS_MT_TRACKING_ID, events[i].id);
+#if FTS_REPORT_PRESSURE_EN
+                    input_report_abs(input_dev, ABS_MT_PRESSURE, events[i].p);
+#endif
+                    input_report_abs(input_dev, ABS_MT_TOUCH_MAJOR, events[i].area);
+                    input_report_abs(input_dev, ABS_MT_POSITION_X, events[i].x);
+                    input_report_abs(input_dev, ABS_MT_POSITION_Y, events[i].y);
+                    input_mt_sync(input_dev);
+
+                    touch_down_point_num_cur++;
+                    if ((ts_data->log_level >= 2) ||
+                        ((1 == ts_data->log_level) && (FTS_TOUCH_DOWN == events[i].flag))) {
+                        FTS_DEBUG("[A]P%d(%d, %d)[p:%d,tm:%d] DOWN!",
+                                  events[i].id, events[i].x, events[i].y,
+                                  events[i].p, events[i].area);
+                    }
+                }
+          } else {
             input_report_abs(input_dev, ABS_MT_TRACKING_ID, events[i].id);
 #if FTS_REPORT_PRESSURE_EN
             input_report_abs(input_dev, ABS_MT_PRESSURE, events[i].p);
@@ -592,16 +663,23 @@ static int fts_input_report_a(struct fts_ts_data *ts_data, struct ts_event *even
                           events[i].id, events[i].x, events[i].y,
                           events[i].p, events[i].area);
             }
+          }
         }
     }
 
-    if (touch_down_point_num_cur)
+    if (touch_down_point_num_cur) {
         input_report_key(input_dev, BTN_TOUCH, 1);
-    else if (touch_event_coordinate || ts_data->touch_points) {
+        if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
+            ts_enter_suspend = FALSE;
+        }
+    } else if (touch_event_coordinate || ts_data->touch_points) {
         if (ts_data->touch_points && (ts_data->log_level >= 1))
             FTS_DEBUG("[A]Points All Up!");
         input_report_key(input_dev, BTN_TOUCH, 0);
         input_mt_sync(input_dev);
+        if (!ts_wake_complete && ts_data->ts_wakeup_fp) {
+            queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
+        }
     }
 
     ts_data->touch_points = touch_down_point_num_cur;
@@ -758,7 +836,7 @@ static int fts_read_parse_touchdata(struct fts_ts_data *ts_data, u8 *touch_buf)
         return TOUCH_IGNORE;
 
     /*gesture*/
-    if (ts_data->suspended && ts_data->gesture_support) {
+    if (ts_data->suspended && ts_data->gesture_support && !ts_data->ts_wakeup_fp) {
         ret = fts_read_reg(FTS_REG_GESTURE_EN, &gesture_en);
         if ((ret >= 0) && (gesture_en == ENABLE))
             return TOUCH_GESTURE;
@@ -830,6 +908,13 @@ static int fts_irq_read_report(struct fts_ts_data *ts_data)
         }
         ts_data->touch_event_num = event_num;
 
+        if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
+                if ((events[0].x <= 630) && (events[0].x >= 450) &&
+                            (events[0].y <= 2270) && (events[0].y >= 2085)) {
+                } else {
+                    goto gesture_report_ts_wake;
+                }
+        }
         mutex_lock(&ts_data->report_mutex);
 #if FTS_MT_PROTOCOL_B_EN
         fts_input_report_b(ts_data, events);
@@ -929,6 +1014,7 @@ static int fts_irq_read_report(struct fts_ts_data *ts_data)
         break;
 
     case TOUCH_GESTURE:
+gesture_report_ts_wake:
         if (0 == fts_gesture_readdata(ts_data, touch_buf)) {
             FTS_INFO("succuss to get gesture data in irq handler");
         }
@@ -1126,6 +1212,7 @@ static int fts_buffer_init(struct fts_ts_data *ts_data)
 
     ts_data->touch_size = FTS_SIZE_DEFAULT;
 
+    ts_data->ts_wakeup_fp = FALSE;
     ts_data->touch_analysis_support = 0;
     ts_data->ta_flag = 0;
     ts_data->ta_size = 0;
@@ -1672,17 +1759,31 @@ static int drm_notifier_callback(struct notifier_block *self,
     switch (*blank) {
     case DRM_PANEL_BLANK_UNBLANK:
         if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
+            ts_hbm_suspend = FALSE;
             FTS_INFO("resume: event = %lu, not care\n", event);
         } else if (DRM_PANEL_EVENT_BLANK == event) {
+            if (ts_enter_suspend)
             queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
         }
         break;
     case DRM_PANEL_BLANK_POWERDOWN:
         if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
+            ts_hbm_suspend = TRUE;
+            ts_wake_complete = FALSE;
+            FTS_INFO("suspend: event = %lu, not care\n", event);
+        } else if (DRM_PANEL_EVENT_BLANK == event) {
             cancel_work_sync(&fts_data->resume_work);
             fts_ts_suspend(ts_data->dev);
+        }
+        break;
+    case DRM_PANEL_BLANK_LP:
+        if (DRM_PANEL_EARLY_EVENT_BLANK == event) {
+            ts_hbm_suspend = TRUE;
+            ts_wake_complete = FALSE;
+            FTS_INFO("BLANK_LP: event = %lu, not care\n", event);
         } else if (DRM_PANEL_EVENT_BLANK == event) {
-            FTS_INFO("suspend: event = %lu, not care\n", event);
+            cancel_work_sync(&fts_data->resume_work);
+            fts_ts_suspend(ts_data->dev);
         }
         break;
     default:
@@ -2035,7 +2136,7 @@ static int fts_ts_suspend(struct device *dev)
 
     fts_esdcheck_suspend(ts_data);
 
-    if (ts_data->gesture_support) {
+    if (ts_data->gesture_support || ts_data->ts_wakeup_fp) {
         fts_gesture_suspend(ts_data);
     } else {
         fts_irq_disable();
@@ -2086,8 +2187,12 @@ static int fts_ts_resume(struct device *dev)
 
     fts_esdcheck_resume(ts_data);
 
-    if (ts_data->gesture_support) {
+    if (ts_data->gesture_support || ts_data->ts_wakeup_fp) {
         fts_gesture_resume(ts_data);
+        if (ts_data->ts_wakeup_fp) {
+            ts_wake_complete = TRUE;
+            ts_enter_suspend = TRUE;
+        }
     }
     else {
         fts_irq_enable();
