@@ -1340,6 +1340,40 @@ static ssize_t fts_tamode_store(
     return count;
 }
 
+static ssize_t fts_wakeup_fp_show(
+    struct device *dev, struct device_attribute *attr, char *buf)
+{
+    int count = 0;
+    struct fts_ts_data *ts_data = dev_get_drvdata(dev);
+    struct input_dev *input_dev = ts_data->input_dev;
+
+    mutex_lock(&input_dev->mutex);
+    count += snprintf(buf + count, PAGE_SIZE, "touchscreen wakeup fingerprint:%s\n", \
+                      ts_data->ts_wakeup_fp ? "Enable" : "Disable");
+    mutex_unlock(&input_dev->mutex);
+
+    return count;
+}
+
+static ssize_t fts_wakeup_fp_store(
+    struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
+{
+    int value = 0;
+    struct fts_ts_data *ts_data = dev_get_drvdata(dev);
+    struct input_dev *input_dev = ts_data->input_dev;
+
+    FTS_FUNC_ENTER();
+    mutex_lock(&input_dev->mutex);
+    sscanf(buf, "%d", &value);
+    ts_data->ts_wakeup_fp = !!value;
+    FTS_DEBUG("set touch work_in_suspend:%d", ts_data->ts_wakeup_fp);
+    mutex_unlock(&input_dev->mutex);
+    FTS_FUNC_EXIT();
+
+    return count;
+}
+
 /* get the fw version  example:cat fw_version */
 static DEVICE_ATTR(fts_fw_version, S_IRUGO | S_IWUSR, fts_tpfwver_show, fts_tpfwver_store);
 
@@ -1370,6 +1404,7 @@ static DEVICE_ATTR(fts_log_level, S_IRUGO | S_IWUSR, fts_log_level_show, fts_log
 static DEVICE_ATTR(fts_pen, S_IRUGO | S_IWUSR, fts_pen_show, fts_pen_store);
 static DEVICE_ATTR(fts_touch_size, S_IRUGO | S_IWUSR, fts_touchsize_show, fts_touchsize_store);
 static DEVICE_ATTR(fts_ta_mode, S_IRUGO | S_IWUSR, fts_tamode_show, fts_tamode_store);
+static DEVICE_ATTR(fts_wakeup_fp, S_IRUGO | S_IWUSR, fts_wakeup_fp_show, fts_wakeup_fp_store);
 
 /* add your attr in here*/
 static struct attribute *fts_attributes[] = {
@@ -1387,6 +1422,7 @@ static struct attribute *fts_attributes[] = {
     &dev_attr_fts_pen.attr,
     &dev_attr_fts_touch_size.attr,
     &dev_attr_fts_ta_mode.attr,
+    &dev_attr_fts_wakeup_fp.attr,
     NULL
 };
 

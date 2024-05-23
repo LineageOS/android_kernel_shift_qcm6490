@@ -200,6 +200,7 @@ struct fts_ts_data {
     bool cover_mode;
     bool charger_mode;
     bool touch_analysis_support;
+    bool ts_wakeup_fp;
     bool prc_support;
     bool prc_mode;
     bool esd_support;
