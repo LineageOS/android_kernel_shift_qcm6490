@@ -5540,7 +5540,7 @@ static bool msm_usbc_swap_gnd_mic(struct snd_soc_component *component, bool acti
 	if (!pdata->fsa_handle)
 		return false;
 
-	return !fsa4480_switch_event(pdata->fsa_handle, FSA_MIC_GND_SWAP);
+	return fsa4480_switch_event(pdata->fsa_handle, FSA_MIC_GND_SWAP);
 }
 
 static bool msm_swap_gnd_mic(struct snd_soc_component *component, bool active)
