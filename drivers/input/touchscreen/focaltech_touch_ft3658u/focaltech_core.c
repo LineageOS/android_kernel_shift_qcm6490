@@ -668,10 +668,12 @@ static int fts_input_report_a(struct fts_ts_data *ts_data, struct ts_event *even
     }
 
     if (touch_down_point_num_cur) {
-        input_report_key(input_dev, BTN_TOUCH, 1);
         if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
             ts_enter_suspend = FALSE;
+            mdelay(500);
         }
+
+        input_report_key(input_dev, BTN_TOUCH, 1);
     } else if (touch_event_coordinate || ts_data->touch_points) {
         if (ts_data->touch_points && (ts_data->log_level >= 1))
             FTS_DEBUG("[A]Points All Up!");
