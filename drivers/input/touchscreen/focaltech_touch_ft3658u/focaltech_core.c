@@ -73,6 +73,7 @@ struct fts_ts_data *fts_data;
 static bool ts_hbm_suspend = FALSE;
 static bool ts_wake_complete = FALSE;
 static bool ts_enter_suspend = TRUE;
+static struct delayed_work delayed_work;
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
@@ -592,10 +593,10 @@ static int fts_input_report_b(struct fts_ts_data *ts_data, struct ts_event *even
     if (touch_down_point_cur) {
         if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
             ts_enter_suspend = FALSE;
-            mdelay(500);
+            schedule_delayed_work(&delayed_work, msecs_to_jiffies(500));
+        } else if (ts_enter_suspend) {
+            input_report_key(input_dev, BTN_TOUCH, 1);
         }
-
-        input_report_key(input_dev, BTN_TOUCH, 1);
     } else if (touch_event_coordinate || ts_data->touch_points) {
         if (ts_data->touch_points && (ts_data->log_level >= 1))
             FTS_DEBUG("[B]Points All Up!");
@@ -672,10 +673,10 @@ static int fts_input_report_a(struct fts_ts_data *ts_data, struct ts_event *even
     if (touch_down_point_num_cur) {
         if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
             ts_enter_suspend = FALSE;
-            mdelay(500);
+            schedule_delayed_work(&delayed_work, msecs_to_jiffies(500));
+        } else if (ts_enter_suspend) {
+            input_report_key(input_dev, BTN_TOUCH, 1);
         }
-
-        input_report_key(input_dev, BTN_TOUCH, 1);
     } else if (touch_event_coordinate || ts_data->touch_points) {
         if (ts_data->touch_points && (ts_data->log_level >= 1))
             FTS_DEBUG("[A]Points All Up!");
@@ -915,8 +916,10 @@ static int fts_irq_read_report(struct fts_ts_data *ts_data)
         if (ts_hbm_suspend && ts_data->ts_wakeup_fp) {
                 if ((events[0].x <= 630) && (events[0].x >= 450) &&
                             (events[0].y <= 2270) && (events[0].y >= 2085)) {
-                } else {
+                } else if (ts_data->gesture_support) {
                     goto gesture_report_ts_wake;
+                } else {
+                    break;
                 }
         }
         mutex_lock(&ts_data->report_mutex);
@@ -1663,6 +1666,14 @@ static void fts_resume_work(struct work_struct *work)
     fts_ts_resume(ts_data->dev);
 }
 
+static void touch_wakeup_delay_work(struct work_struct *work)
+{
+    struct fts_ts_data *ts_data = fts_data;
+    struct input_dev *input_dev = ts_data->input_dev;
+
+    input_report_key(input_dev, BTN_TOUCH, 1);
+}
+
 #if defined(CONFIG_FB)
 static int fb_notifier_callback(struct notifier_block *self,
                                 unsigned long event, void *data)
@@ -1776,6 +1787,7 @@ static int drm_notifier_callback(struct notifier_block *self,
             ts_wake_complete = FALSE;
             FTS_INFO("suspend: event = %lu, not care\n", event);
         } else if (DRM_PANEL_EVENT_BLANK == event) {
+            cancel_delayed_work_sync(&delayed_work);
             cancel_work_sync(&fts_data->resume_work);
             fts_ts_suspend(ts_data->dev);
         }
@@ -1786,6 +1798,7 @@ static int drm_notifier_callback(struct notifier_block *self,
             ts_wake_complete = FALSE;
             FTS_INFO("BLANK_LP: event = %lu, not care\n", event);
         } else if (DRM_PANEL_EVENT_BLANK == event) {
+            cancel_delayed_work_sync(&delayed_work);
             cancel_work_sync(&fts_data->resume_work);
             fts_ts_suspend(ts_data->dev);
         }
@@ -1995,6 +2008,8 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
     if (ts_data->ts_workqueue) {
         INIT_WORK(&ts_data->resume_work, fts_resume_work);
     }
+
+    INIT_DELAYED_WORK(&delayed_work, touch_wakeup_delay_work);
 
 #if defined(CONFIG_PM) && FTS_PATCH_COMERR_PM
     init_completion(&ts_data->pm_completion);
