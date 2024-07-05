@@ -15,7 +15,7 @@
 
 /*********** PART0: Global Variables Area ***********/
 struct tms_info *tms = NULL;
-unsigned int tms_debug = LEVEL_DUMP;
+unsigned int tms_debug = LEVEL_DEFAULT;
 
 /*********** PART1: Declare Area ***********/
 
