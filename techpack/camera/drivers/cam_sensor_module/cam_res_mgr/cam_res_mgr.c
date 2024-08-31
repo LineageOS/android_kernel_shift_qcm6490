@@ -932,7 +932,8 @@ static void cam_res_mgr_component_unbind(struct device *dev,
 {
 	if (cam_res) {
 		cam_res_mgr_free_res();
-		devm_pinctrl_put(cam_res->pinctrl);
+		if(cam_res->pinctrl != NULL)
+		    devm_pinctrl_put(cam_res->pinctrl);
 		cam_res->pinctrl = NULL;
 		cam_res->pstatus = PINCTRL_STATUS_PUT;
 		kfree(cam_res);

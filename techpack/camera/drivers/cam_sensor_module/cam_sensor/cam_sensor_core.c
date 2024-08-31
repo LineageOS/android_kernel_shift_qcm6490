@@ -13,6 +13,18 @@
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
 
+char cam2_type_str[32] = "NONE";
+EXPORT_SYMBOL(cam2_type_str);
+
+char cam0_type_str[32] = "NONE";
+EXPORT_SYMBOL(cam0_type_str);
+
+char cam1_type_str[32] = "NONE";
+EXPORT_SYMBOL(cam1_type_str);
+
+#define IMX766_SENSOR_ID 	0x0766
+#define IMX766_AUX_SENSOR_ID 	0x0766
+#define IMX616_SENSOR_ID 	0x0616
 
 static int cam_sensor_update_req_mgr(
 	struct cam_sensor_ctrl_t *s_ctrl,
@@ -710,6 +722,39 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 		CAM_WARN(CAM_SENSOR, "read id: 0x%x expected id 0x%x:",
 				chipid, slave_info->sensor_id);
 		return -ENODEV;
+	}else{
+		if(s_ctrl->id == 0){
+			switch(chipid){
+				case IMX766_SENSOR_ID:
+					strcpy(cam0_type_str,"IMX766_MJY");
+				break;
+
+				default:
+				break;
+			}
+		}
+	
+		if(s_ctrl->id == 1){
+			switch(chipid){
+				case IMX766_AUX_SENSOR_ID:
+					strcpy(cam2_type_str,"IMX766_AUX_MJY");
+				break;
+
+				default:
+				break;
+			}
+		}
+
+		if(s_ctrl->id == 2){
+			switch(chipid){
+				case IMX616_SENSOR_ID:
+					strcpy(cam1_type_str,"IMX616_MJY");
+				break;
+
+				default:
+				break;
+			}
+		}	
 	}
 	return rc;
 }
