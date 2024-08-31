@@ -61,8 +61,11 @@ static int  boardid_probe(struct platform_device *pdev)
 	int ret = 0;
 	struct device_node *node = pdev->dev.of_node;
 	struct device *dev = &pdev->dev;
+	struct pinctrl *pinctrl;
 
-	devm_pinctrl_get_select_default(dev);
+	pinctrl = devm_pinctrl_get_select_default(dev);
+	if (IS_ERR(pinctrl))
+		dev_warn(&boardid_gpiodata->pdev->dev, "pins are not configured\n");
 
 	printk(KERN_ERR "[BOARDID] boardid_probe entry \n");
 
