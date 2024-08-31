@@ -11,8 +11,10 @@
 #include <linux/device.h>
 
 struct subsys_device;
-extern struct bus_type subsys_bus_type;
-
+#define MODEM_RESET_DEBUG
+#ifdef MODEM_RESET_DEBUG
+//extern struct bus_type subsys_bus_type;
+#endif
 enum {
 	RESET_SOC = 0,
 	RESET_SUBSYS_COUPLED,
