@@ -312,7 +312,10 @@
 
 		perst-gpio = <&tlmm 2 0>;
 		wake-gpio = <&tlmm 3 0>;
-		qcom,clkreq-gpio = <79>;
+
+		/*gpio79 is used by smart PA*/
+		//qcom,clkreq-gpio = <79>;
+
 		pinctrl-names = "default";
 		pinctrl-0 = <&pcie1_perst_default
 				&pcie1_clkreq_default

@@ -49,13 +49,42 @@
 	qcom,platform-te-gpio = <&tlmm 80 0>;
 	qcom,panel-te-source = <0>;
 
-	vddio-supply = <&L8C>;
+	vddio-supply = <&L12C>;
+	vdd-supply = <&L13C>;
 	lab-supply = <&lcdb_ldo_vreg>;
 	ibb-supply = <&lcdb_ncp_vreg>;
 };
 
 &mdss_mdp {
 	connectors = <&smmu_sde_unsec &smmu_sde_sec &sde_wb &sde_dsi &sde_rscc &sde_dp>;
+};
+
+
+&dsi_sh8804b_mz_amoled_fhd_plus_cmd {
+	qcom,esd-check-enabled;
+	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
+	qcom,mdss-dsi-panel-status-command = [06 01 00 01 00 00 01 0a];
+	qcom,mdss-dsi-panel-status-command-state = "dsi_lp_mode";
+	qcom,mdss-dsi-panel-status-value = <0x9c>;
+	qcom,mdss-dsi-panel-status-read-length = <1>;
+};
+
+&dsi_sh8804b_mz_amoled_fhd_plus_video {
+	qcom,esd-check-enabled;
+	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
+	qcom,mdss-dsi-panel-status-command = [06 01 00 01 00 00 01 0a];
+	qcom,mdss-dsi-panel-status-command-state = "dsi_lp_mode";
+	qcom,mdss-dsi-panel-status-value = <0x9c>;
+	qcom,mdss-dsi-panel-status-read-length = <1>;
+};
+
+&dsi_sh8804b_mz_amoled_dsc_fhd_plus_cmd {
+	qcom,esd-check-enabled;
+	qcom,mdss-dsi-panel-status-check-mode = "te_signal_check";
+	//qcom,mdss-dsi-panel-status-command = [06 01 00 01 00 00 01 0a];
+	//qcom,mdss-dsi-panel-status-command-state = "dsi_lp_mode";
+	//qcom,mdss-dsi-panel-status-value = <0x9c>;
+	//qcom,mdss-dsi-panel-status-read-length = <1>;
 };
 
 &dsi_nt36672e_fhd_plus_60_video {

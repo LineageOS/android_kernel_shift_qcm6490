@@ -133,20 +133,20 @@
 			pm8350c_flash0: qcom,flash_0 {
 				label = "flash";
 				qcom,led-name = "led:flash_0";
-				qcom,max-current-ma = <1500>;
+				qcom,max-current-ma = <1000>;
 				qcom,default-led-trigger = "flash0_trigger";
 				qcom,id = <0>;
-				qcom,duration-ms = <1280>;
+				qcom,duration-ms = <480>;
 				qcom,ires-ua = <12500>;
 			};
 
 			pm8350c_flash1: qcom,flash_1 {
 				label = "flash";
 				qcom,led-name = "led:flash_1";
-				qcom,max-current-ma = <1500>;
+				qcom,max-current-ma = <1000>;
 				qcom,default-led-trigger = "flash1_trigger";
 				qcom,id = <1>;
-				qcom,duration-ms = <1280>;
+				qcom,duration-ms = <480>;
 				qcom,ires-ua = <12500>;
 			};
 
@@ -173,7 +173,7 @@
 			pm8350c_torch0: qcom,torch_0 {
 				label = "torch";
 				qcom,led-name = "led:torch_0";
-				qcom,max-current-ma = <500>;
+				qcom,max-current-ma = <100>;
 				qcom,default-led-trigger = "torch0_trigger";
 				qcom,id = <0>;
 				qcom,ires-ua = <12500>;
@@ -182,7 +182,7 @@
 			pm8350c_torch1: qcom,torch_1 {
 				label = "torch";
 				qcom,led-name = "led:torch_1";
-				qcom,max-current-ma = <500>;
+				qcom,max-current-ma = <100>;
 				qcom,default-led-trigger = "torch1_trigger";
 				qcom,id = <1>;
 				qcom,ires-ua = <12500>;

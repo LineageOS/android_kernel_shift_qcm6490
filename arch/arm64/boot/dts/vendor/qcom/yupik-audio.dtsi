@@ -160,7 +160,7 @@
 	yupik_snd: sound {
 		compatible = "qcom,lahaina-asoc-snd";
 		qcom,mi2s-audio-intf = <1>;
-		qcom,auxpcm-audio-intf = <1>;
+		qcom,auxpcm-audio-intf = <0>;
 		qcom,wcn-bt = <1>;
 		qcom,ext-disp-audio-rx = <1>;
 		qcom,afe-rxtx-lb = <0>;
