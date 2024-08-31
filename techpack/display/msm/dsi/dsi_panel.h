@@ -66,6 +66,17 @@ enum {
 	MODE_GPIO_LOW,
 };
 
+/* MIPI DCS commands */
+enum {
+	MIPI_DCS_NONE			= 0x00,
+	MIPI_DCS_WRITE_PAPER_MODE	= 0x64,
+	MIPI_DCS_READ_PAPER_MODE	= 0x65,
+	MIPI_DCS_WRITE_FPS_CONTROL	= 0x6E,
+	MIPI_DCS_READ_FPS_CONTROL	= 0x6F,
+	MIPI_DCS_WRITE_DYNAMIC_FPS	= 0x70,
+	MIPI_DCS_READ_DYNAMIC_FPS	= 0x71,
+};
+
 enum dsi_dms_mode {
 	DSI_DMS_MODE_DISABLED = 0,
 	DSI_DMS_MODE_RES_SWITCH_IMMEDIATE,
@@ -353,6 +364,16 @@ int dsi_panel_unprepare(struct dsi_panel *panel);
 int dsi_panel_post_unprepare(struct dsi_panel *panel);
 
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl);
+
+int dsi_panel_get_display_reg_value(struct dsi_panel *panel, u8 cmd, u8 *value);
+
+int dsi_panel_set_display_reg_value(struct dsi_panel *panel, u8 cmd, u8 value);
+
+int dsi_panel_update_display_fps(struct dsi_panel *panel, u8 value);
+
+int dsi_panel_update_display_hbm(struct dsi_panel *panel, u8 value);
+
+int dsi_panel_update_display_dynamic_fps(struct dsi_panel *panel, u8 value);
 
 int dsi_panel_update_pps(struct dsi_panel *panel);
 

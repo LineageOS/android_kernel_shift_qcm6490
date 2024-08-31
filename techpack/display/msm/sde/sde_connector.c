@@ -16,15 +16,24 @@
 #include <linux/string.h>
 #include "dsi_drm.h"
 #include "dsi_display.h"
+#include "dsi_panel.h"
 #include "dp_panel.h"
 #include "sde_crtc.h"
 #include "sde_rm.h"
 #include "sde_vm.h"
 #include <drm/drm_probe_helper.h>
+#include <video/mipi_display.h>
 
 #define BL_NODE_NAME_SIZE 32
 #define HDR10_PLUS_VSIF_TYPE_CODE      0x81
 #define MAX_BRIGHTNESS_LEVEL 255
+
+
+static struct sde_connector *sim_global_c_conn;
+static struct class *sim_display_class;
+static struct device *sim_display_dev;
+static struct mutex bl_ops_lock;
+
 
 /* Autorefresh will occur after FRAME_CNT frames. Large values are unlikely */
 #define AUTOREFRESH_MAX_FRAME_CNT 6
@@ -144,6 +153,9 @@ static int sde_backlight_device_update_status(struct backlight_device *bd)
 	if (!bl_lvl && brightness)
 		bl_lvl = 1;
 
+	if (bl_lvl && brightness)
+		bl_lvl += 46;
+
 	if (!c_conn->allow_bl_update) {
 		c_conn->unset_bl_level = bl_lvl;
 		return 0;
@@ -181,6 +193,300 @@ static int sde_backlight_device_get_brightness(struct backlight_device *bd)
 	return 0;
 }
 
+static int sde_backlight_device_get_display_reg_value(u8 cmd, u8 *value)
+{
+	int rc = 0;
+	struct sde_connector *c_conn = sim_global_c_conn;
+	struct dsi_display *dsi_display = c_conn->display;
+	//struct dsi_panel *panel = c_conn->display->panel;
+	struct dsi_panel *panel = dsi_display->panel;
+	struct dsi_backlight_config *bl = &panel->bl_config;
+
+	if (bl->type == DSI_BACKLIGHT_DCS)
+		rc = dsi_panel_get_display_reg_value(panel, cmd, value);
+	if (rc < 0)
+		SDE_ERROR("Failed to get display reg[0x%02x] value\n", cmd);
+
+	return rc;
+}
+
+static int sde_backlight_device_set_display_reg_value(u8 cmd, u8 value)
+{
+	int rc = 0;
+	struct sde_connector *c_conn = sim_global_c_conn;
+	struct dsi_display *dsi_display = c_conn->display;
+	//struct dsi_panel *panel = c_conn->display->panel;
+	struct dsi_panel *panel = dsi_display->panel;
+	struct dsi_backlight_config *bl = &panel->bl_config;
+
+
+	if (bl->type == DSI_BACKLIGHT_DCS)
+		rc = dsi_panel_set_display_reg_value(panel, cmd, value);
+	if (rc < 0)
+		SDE_ERROR("Failed to set display reg[0x%02x] value\n", cmd);
+
+	return rc;
+}
+
+static int sde_backlight_device_update_fps(u8 value)
+{
+	int rc = 0;
+	struct sde_connector *c_conn = sim_global_c_conn;
+	struct dsi_display *dsi_display = c_conn->display;
+	//struct dsi_panel *panel = c_conn->display->panel;
+	struct dsi_panel *panel = dsi_display->panel;
+	struct dsi_backlight_config *bl = &panel->bl_config;
+
+
+	if (bl->type == DSI_BACKLIGHT_DCS)
+		rc = dsi_panel_update_display_fps(panel, value);
+	if (rc < 0)
+		SDE_ERROR("Failed to update backlight fps\n");
+
+	return rc;
+}
+
+static int sde_backlight_device_update_hbm(u8 value)
+{
+	int rc = 0;
+	struct sde_connector *c_conn = sim_global_c_conn;
+	struct dsi_display *dsi_display = c_conn->display;
+	//struct dsi_panel *panel = c_conn->display->panel;
+	struct dsi_panel *panel = dsi_display->panel;
+	struct dsi_backlight_config *bl = &panel->bl_config;
+
+
+	if (bl->type == DSI_BACKLIGHT_DCS)
+		rc = dsi_panel_update_display_hbm(panel, value);
+	if (rc < 0)
+		SDE_ERROR("Failed to update backlight hbm\n");
+
+	return rc;
+}
+
+static int sde_backlight_device_update_dynamic_fps(u8 value)
+{
+	int rc = 0;
+	struct sde_connector *c_conn = sim_global_c_conn;
+	struct dsi_display *dsi_display = c_conn->display;
+	//struct dsi_panel *panel = c_conn->display->panel;
+	struct dsi_panel *panel = dsi_display->panel;
+	struct dsi_backlight_config *bl = &panel->bl_config;
+
+
+	if (bl->type == DSI_BACKLIGHT_DCS)
+		rc = dsi_panel_update_display_dynamic_fps(panel, value);
+	if (rc < 0)
+		SDE_ERROR("Failed to update backlight dynamic fps\n");
+
+	return rc;
+}
+
+
+static ssize_t bl_fps_func_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int rc;
+	int count = 0;
+	u8 value;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_READ_FPS_CONTROL, &value);
+	mutex_unlock(&bl_ops_lock);
+
+	if (rc)
+		count = sprintf(buf, "get value fail!\n");
+	else
+		count = sprintf(buf, "0x%02x\n", value);
+
+	return count;
+}
+
+static ssize_t bl_fps_func_store(struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_update_fps(value);
+	mutex_unlock(&bl_ops_lock);
+
+	return rc ? rc : count;
+
+	return count;
+}
+
+
+static ssize_t bl_hbm_mode_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int rc;
+	int count = 0;
+	u8 value;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_GET_CONTROL_DISPLAY, &value);
+	mutex_unlock(&bl_ops_lock);
+
+	if (rc)
+		count = sprintf(buf, "get value fail!\n");
+	else
+		count = sprintf(buf, "0x%02x\n", value);
+
+	return count;
+}
+
+static ssize_t bl_hbm_mode_store(struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_update_hbm(value);
+	mutex_unlock(&bl_ops_lock);
+
+	return rc ? rc : count;
+
+	return count;
+}
+
+
+static ssize_t dynamic_fps_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int rc;
+	int count = 0;
+	u8 value;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_READ_DYNAMIC_FPS, &value);
+	mutex_unlock(&bl_ops_lock);
+
+	if (rc)
+		count = sprintf(buf, "get value fail!\n");
+	else
+		count = sprintf(buf, "0x%02x\n", value);
+
+	return count;
+}
+
+static ssize_t dynamic_fps_store(struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_update_dynamic_fps(value);
+	mutex_unlock(&bl_ops_lock);
+
+	return rc ? rc : count;
+
+	return count;
+}
+
+
+static ssize_t eye_protect_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int rc;
+	int count = 0;
+	u8 value;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_get_display_reg_value(MIPI_DCS_READ_PAPER_MODE, &value);
+	mutex_unlock(&bl_ops_lock);
+
+	if (rc)
+		count = sprintf(buf, "get value fail!\n");
+	else
+		count = sprintf(buf, "0x%02x\n", value);
+
+	return count;
+}
+
+static ssize_t eye_protect_store(struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	mutex_lock(&bl_ops_lock);
+	rc = sde_backlight_device_set_display_reg_value(MIPI_DCS_WRITE_PAPER_MODE, value);
+	mutex_unlock(&bl_ops_lock);
+
+	return rc ? rc : count;
+
+	return count;
+}
+
+
+static ssize_t color_invert_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int rc;
+	int count = 0;
+	u8 value = 0;
+
+	mutex_lock(&bl_ops_lock);
+	rc = -1;
+	mutex_unlock(&bl_ops_lock);
+
+	if (rc)
+		count = sprintf(buf, "get value fail!\n");
+	else
+		count = sprintf(buf, "0x%02x\n", value);
+
+	return count;
+}
+
+static ssize_t color_invert_store(struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	u8 value;
+
+	rc = kstrtou8(buf, 0, &value);
+	if (rc)
+		return rc;
+
+	mutex_lock(&bl_ops_lock);
+	if (value)
+		rc = sde_backlight_device_set_display_reg_value(MIPI_DCS_ENTER_INVERT_MODE, 0);
+	else
+		rc = sde_backlight_device_set_display_reg_value(MIPI_DCS_EXIT_INVERT_MODE, 0);
+	mutex_unlock(&bl_ops_lock);
+
+	return rc ? rc : count;
+
+	return count;
+}
+
+static DEVICE_ATTR(bl_fps_func, 0664, bl_fps_func_show, bl_fps_func_store);
+static DEVICE_ATTR(bl_hbm_mode, 0664, bl_hbm_mode_show, bl_hbm_mode_store);
+static DEVICE_ATTR(dynamic_fps, 0664, dynamic_fps_show, dynamic_fps_store);
+static DEVICE_ATTR(eye_protect, 0664, eye_protect_show, eye_protect_store);
+static DEVICE_ATTR(color_invert, 0664, color_invert_show, color_invert_store);
+
+
 static const struct backlight_ops sde_backlight_device_ops = {
 	.update_status = sde_backlight_device_update_status,
 	.get_brightness = sde_backlight_device_get_brightness,
@@ -211,6 +517,7 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 	static int display_count;
 	char bl_node_name[BL_NODE_NAME_SIZE];
 	u32 brightness_max_level = 0;
+	int ret = 0;
 
 	sde_kms = _sde_connector_get_kms(&c_conn->base);
 	if (!sde_kms) {
@@ -245,6 +552,7 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 	props.power = FB_BLANK_UNBLANK;
 	props.max_brightness = brightness_max_level;
 	props.brightness = brightness_max_level;
+	sim_global_c_conn = c_conn;
 	snprintf(bl_node_name, BL_NODE_NAME_SIZE, "panel%u-backlight",
 							display_count);
 	c_conn->bl_device = backlight_device_register(bl_node_name, dev->dev,
@@ -256,6 +564,59 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 		return -ENODEV;
 	}
 	c_conn->thermal_max_brightness = brightness_max_level;
+
+	mutex_init(&bl_ops_lock);
+
+	sim_display_class = class_create(THIS_MODULE, "display");
+	if(IS_ERR(sim_display_class))
+	{
+		ret = PTR_ERR(sim_display_class);
+		SDE_ERROR("Failed to create class.\n");
+		return ret;
+	}
+
+	sim_display_dev = device_create(sim_display_class, NULL, 0, NULL, "panel");
+	if (IS_ERR(sim_display_dev))
+	{
+		ret = PTR_ERR(sim_display_dev);
+		SDE_ERROR("Failed to create device!\n");
+		return ret;
+	}
+	ret = device_create_file(sim_display_dev, &dev_attr_bl_fps_func);
+	if(ret)
+	{
+		SDE_ERROR("panel creat bl_fps_func sysfs failed, ret:%d \n", ret);
+		class_destroy(sim_display_class);
+		return ret;
+	}
+	ret = device_create_file(sim_display_dev, &dev_attr_bl_hbm_mode);
+	if(ret)
+	{
+		SDE_ERROR("panel creat bl_hbm_mode sysfs failed, ret:%d \n", ret);
+		class_destroy(sim_display_class);
+		return ret;
+	}
+	ret = device_create_file(sim_display_dev, &dev_attr_dynamic_fps);
+	if(ret)
+	{
+		SDE_ERROR("panel creat dynamic_fps sysfs failed, ret:%d \n", ret);
+		class_destroy(sim_display_class);
+		return ret;
+	}
+	ret = device_create_file(sim_display_dev, &dev_attr_eye_protect);
+	if(ret)
+	{
+		SDE_ERROR("panel creat eye_protect sysfs failed, ret:%d \n", ret);
+		class_destroy(sim_display_class);
+		return ret;
+	}
+	ret = device_create_file(sim_display_dev, &dev_attr_color_invert);
+	if(ret)
+	{
+		SDE_ERROR("panel creat color_invert sysfs failed, ret:%d \n", ret);
+		class_destroy(sim_display_class);
+		return ret;
+	}
 
 	/**
 	 * In TVM, thermal cooling device is not enabled. Registering with dummy

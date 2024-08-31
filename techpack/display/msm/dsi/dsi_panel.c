@@ -568,6 +568,175 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	return rc;
 }
 
+static int mipi_dsi_dcs_get_display_reg_value(struct mipi_dsi_device *dsi, u8 cmd,
+	u8 *value)
+{
+	ssize_t err;
+
+	err = mipi_dsi_dcs_read(dsi, cmd, value, sizeof(*value));
+	if (err <= 0) {
+		if (err == 0)
+			err = -ENODATA;
+
+		return err;
+	}
+
+	return 0;
+}
+
+static int mipi_dsi_dcs_set_display_reg_value(struct mipi_dsi_device *dsi, u8 cmd,
+	u8 value)
+{
+	ssize_t err;
+
+	err = mipi_dsi_dcs_write(dsi, cmd, &value, sizeof(value));
+
+	if (err < 0)
+		return err;
+
+	return 0;
+}
+
+int dsi_panel_get_display_reg_value(struct dsi_panel *panel, u8 cmd,
+	u8 *value)
+{
+	int rc = 0;
+	unsigned long mode_flags = 0;
+	struct mipi_dsi_device *dsi = NULL;
+
+	if (!panel || (*value > 0xff)) {
+		DSI_ERR("invalid params\n");
+		return -EINVAL;
+	}
+
+	dsi = &panel->mipi_device;
+	if (unlikely(panel->bl_config.lp_mode)) {
+		mode_flags = dsi->mode_flags;
+		dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+	}
+
+	rc = mipi_dsi_dcs_get_display_reg_value(dsi, cmd, value);
+	if (rc < 0)
+		DSI_ERR("%s: failed.\n", __func__);
+
+	if (unlikely(panel->bl_config.lp_mode))
+		dsi->mode_flags = mode_flags;
+
+	return rc;
+}
+
+int dsi_panel_set_display_reg_value(struct dsi_panel *panel, u8 cmd,
+	u8 value)
+{
+	int rc = 0;
+	unsigned long mode_flags = 0;
+	struct mipi_dsi_device *dsi = NULL;
+
+	if (!panel || (value > 0xff)) {
+		DSI_ERR("invalid params\n");
+		return -EINVAL;
+	}
+
+	dsi = &panel->mipi_device;
+	if (unlikely(panel->bl_config.lp_mode)) {
+		mode_flags = dsi->mode_flags;
+		dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+	}
+
+	rc = mipi_dsi_dcs_set_display_reg_value(dsi, cmd, value);
+	if (rc < 0)
+		DSI_ERR("%s: failed.\n", __func__);
+
+	if (unlikely(panel->bl_config.lp_mode))
+		dsi->mode_flags = mode_flags;
+
+	return rc;
+}
+
+int dsi_panel_update_display_fps(struct dsi_panel *panel,
+	u8 value)
+{
+	int rc = 0;
+	unsigned long mode_flags = 0;
+	struct mipi_dsi_device *dsi = NULL;
+
+	if (!panel || (value > 0xff)) {
+		DSI_ERR("invalid params\n");
+		return -EINVAL;
+	}
+
+	dsi = &panel->mipi_device;
+	if (unlikely(panel->bl_config.lp_mode)) {
+		mode_flags = dsi->mode_flags;
+		dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+	}
+
+	rc = mipi_dsi_dcs_set_display_reg_value(dsi, MIPI_DCS_WRITE_FPS_CONTROL, value);
+	if (rc < 0)
+		DSI_ERR("failed to update dcs display fps:0x%x\n", value);
+
+	if (unlikely(panel->bl_config.lp_mode))
+		dsi->mode_flags = mode_flags;
+
+	return rc;
+}
+
+int dsi_panel_update_display_hbm(struct dsi_panel *panel,
+	u8 value)
+{
+	int rc = 0;
+	unsigned long mode_flags = 0;
+	struct mipi_dsi_device *dsi = NULL;
+
+	if (!panel || (value > 0xff)) {
+		DSI_ERR("invalid params\n");
+		return -EINVAL;
+	}
+
+	dsi = &panel->mipi_device;
+	if (unlikely(panel->bl_config.lp_mode)) {
+		mode_flags = dsi->mode_flags;
+		dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+	}
+
+	rc = mipi_dsi_dcs_set_display_reg_value(dsi, MIPI_DCS_WRITE_CONTROL_DISPLAY, value);
+	if (rc < 0)
+		DSI_ERR("failed to update dcs display hbm:0x%x\n", value);
+
+	if (unlikely(panel->bl_config.lp_mode))
+		dsi->mode_flags = mode_flags;
+
+	return rc;
+}
+
+int dsi_panel_update_display_dynamic_fps(struct dsi_panel *panel,
+	u8 value)
+{
+	int rc = 0;
+	unsigned long mode_flags = 0;
+	struct mipi_dsi_device *dsi = NULL;
+
+	if (!panel || (value > 0xff)) {
+		DSI_ERR("invalid params\n");
+		return -EINVAL;
+	}
+
+	dsi = &panel->mipi_device;
+	if (unlikely(panel->bl_config.lp_mode)) {
+		mode_flags = dsi->mode_flags;
+		dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+	}
+
+	rc = mipi_dsi_dcs_set_display_reg_value(dsi, MIPI_DCS_WRITE_DYNAMIC_FPS, value);
+	if (rc < 0)
+		DSI_ERR("failed to update dcs display dynamic fps:0x%x\n", value);
+
+	if (unlikely(panel->bl_config.lp_mode))
+		dsi->mode_flags = mode_flags;
+
+	return rc;
+}
+
 static int dsi_panel_update_pwm_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
 {
