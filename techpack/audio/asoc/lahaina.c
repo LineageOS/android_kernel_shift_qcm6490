@@ -6638,13 +6638,13 @@ static void *def_wcd_mbhc_cal(void)
 		(sizeof(btn_cfg->_v_btn_low[0]) * btn_cfg->num_btn);
 
 	btn_high[0] = 75;
-	btn_high[1] = 150;
-	btn_high[2] = 237;
-	btn_high[3] = 500;
-	btn_high[4] = 500;
-	btn_high[5] = 500;
-	btn_high[6] = 500;
-	btn_high[7] = 500;
+	btn_high[1] = 90;
+	btn_high[2] = 210;
+	btn_high[3] = 352;
+	btn_high[4] = 352;
+	btn_high[5] = 352;
+	btn_high[6] = 352;
+	btn_high[7] = 352;
 
 	return wcd_mbhc_cal;
 }
