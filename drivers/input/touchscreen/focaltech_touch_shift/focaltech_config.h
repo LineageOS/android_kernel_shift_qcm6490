@@ -167,19 +167,19 @@
  * show debug log info
  * enable it for debug, disable it for release
  */
-#define FTS_DEBUG_EN                            0
+#define FTS_DEBUG_EN                            1
 
 /*
  * Linux MultiTouch Protocol
  * 1: Protocol B(default), 0: Protocol A
  */
-#define FTS_MT_PROTOCOL_B_EN                    1
+#define FTS_MT_PROTOCOL_B_EN                    0
 
 /*
  * Report Pressure in multitouch
  * 1:enable(default),0:disable
 */
-#define FTS_REPORT_PRESSURE_EN                  1
+#define FTS_REPORT_PRESSURE_EN                  0
 
 /*
  * Gesture function enable
