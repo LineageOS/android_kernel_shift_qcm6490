@@ -57,6 +57,30 @@
       },
       "revId": "cb8a01b5d489b54ac6c843f78c0ac2849b4df6b2",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8c341bd6_fb3111e1",
+        "filename": "drivers/input/touchscreen/focaltech_touch_ft3658u/focaltech_config.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 19282
+      },
+      "writtenOn": "2025-04-23T12:28:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5b7fa1e3_337b20b6",
+      "range": {
+        "startLine": 286,
+        "startChar": 49,
+        "endLine": 286,
+        "endChar": 108
+      },
+      "revId": "cb8a01b5d489b54ac6c843f78c0ac2849b4df6b2",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }

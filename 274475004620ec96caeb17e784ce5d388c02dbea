@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "038298e7_5709c1cd",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 19282
+      },
+      "writtenOn": "2025-04-23T12:28:42Z",
+      "side": 1,
+      "message": "Cleaned up everything.\nI hope it charms your eyes now 😄",
+      "revId": "274475004620ec96caeb17e784ce5d388c02dbea",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
