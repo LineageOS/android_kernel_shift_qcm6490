@@ -237,6 +237,12 @@
  */
 #define FTS_POWER_SOURCE_CUST_EN                1
 
+/*
+ * Enable or disable binary flashing via sysfs
+ * default: disable
+ */
+#define FTS_ENABLE_BINARY_FLASHING              0
+
 /****************************************************/
 
 /********************** Upgrade ****************************/
