@@ -315,7 +315,9 @@ void fts_prc_queue_work(struct fts_ts_data *ts_data);
 /* FW upgrade */
 int fts_fwupg_init(struct fts_ts_data *ts_data);
 int fts_fwupg_exit(struct fts_ts_data *ts_data);
+#if FTS_ENABLE_BINARY_FLASHING
 int fts_upgrade_bin(char *fw_name, bool force);
+#endif
 int fts_enter_test_environment(bool test_state);
 
 /* Other */
