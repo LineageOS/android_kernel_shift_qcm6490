@@ -3132,7 +3132,7 @@ static const struct i2c_device_id fts_ts_i2c_id[] = {
 	{},
 };
 static const struct of_device_id fts_dt_match[] = {
-	{.compatible = "focaltech,fts_ts", },
+	{.compatible = "focaltech,fts", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, fts_dt_match);
