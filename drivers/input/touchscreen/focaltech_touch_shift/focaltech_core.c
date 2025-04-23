@@ -74,7 +74,7 @@
 #define INTERVAL_READ_REG                   200  /* unit:ms */
 #define TIMEOUT_READ_REG                    1000 /* unit:ms */
 #if FTS_POWER_SOURCE_CUST_EN
-#define FTS_VTG_MIN_UV                      3000000
+#define FTS_VTG_MIN_UV                      2800000
 #define FTS_VTG_MAX_UV                      3300000
 #define FTS_LOAD_MAX_UA                     30000
 #define FTS_I2C_VTG_MIN_UV                  1800000
