@@ -1133,6 +1133,7 @@ read_flash_err:
     return ret;
 }
 
+#if FTS_ENABLE_BINARY_FLASHING
 static int fts_read_file_default(char *file_name, u8 **file_buf)
 {
     int ret = 0;
@@ -1301,6 +1302,7 @@ err_bin:
     }
     return ret;
 }
+#endif
 
 int fts_enter_test_environment(bool test_state)
 {
