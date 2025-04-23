@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "369a988c_8e58f4ec",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 11883
+      },
+      "writtenOn": "2025-04-23T10:19:28Z",
+      "side": 1,
+      "message": "can you dos2unix before \u0026 then apply?\notherwise the diffs are very hard to grasp",
+      "revId": "cb8a01b5d489b54ac6c843f78c0ac2849b4df6b2",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
