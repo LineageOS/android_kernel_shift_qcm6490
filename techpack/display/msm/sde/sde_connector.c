@@ -282,7 +282,6 @@ static int sde_backlight_device_update_dynamic_fps(u8 value)
 	return rc;
 }
 
-
 static ssize_t bl_fps_func_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -317,10 +316,7 @@ static ssize_t bl_fps_func_store(struct device *dev,
 	mutex_unlock(&bl_ops_lock);
 
 	return rc ? rc : count;
-
-	return count;
 }
-
 
 static ssize_t bl_hbm_mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -356,10 +352,7 @@ static ssize_t bl_hbm_mode_store(struct device *dev,
 	mutex_unlock(&bl_ops_lock);
 
 	return rc ? rc : count;
-
-	return count;
 }
-
 
 static ssize_t dynamic_fps_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -395,10 +388,7 @@ static ssize_t dynamic_fps_store(struct device *dev,
 	mutex_unlock(&bl_ops_lock);
 
 	return rc ? rc : count;
-
-	return count;
 }
-
 
 static ssize_t eye_protect_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -434,10 +424,7 @@ static ssize_t eye_protect_store(struct device *dev,
 	mutex_unlock(&bl_ops_lock);
 
 	return rc ? rc : count;
-
-	return count;
 }
-
 
 static ssize_t color_invert_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -476,8 +463,6 @@ static ssize_t color_invert_store(struct device *dev,
 	mutex_unlock(&bl_ops_lock);
 
 	return rc ? rc : count;
-
-	return count;
 }
 
 static DEVICE_ATTR(bl_fps_func, 0664, bl_fps_func_show, bl_fps_func_store);
@@ -486,6 +471,18 @@ static DEVICE_ATTR(dynamic_fps, 0664, dynamic_fps_show, dynamic_fps_store);
 static DEVICE_ATTR(eye_protect, 0664, eye_protect_show, eye_protect_store);
 static DEVICE_ATTR(color_invert, 0664, color_invert_show, color_invert_store);
 
+static struct attribute *panel_fps_attrs[] = {
+	&dev_attr_bl_fps_func.attr,
+	&dev_attr_bl_hbm_mode.attr,
+	&dev_attr_dynamic_fps.attr,
+	&dev_attr_eye_protect.attr,
+	&dev_attr_color_invert.attr,
+	NULL
+};
+
+static struct attribute_group panel_fps_attr_group = {
+	.attrs = panel_fps_attrs
+};
 
 static const struct backlight_ops sde_backlight_device_ops = {
 	.update_status = sde_backlight_device_update_status,
@@ -579,41 +576,14 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 	if (IS_ERR(sim_display_dev))
 	{
 		ret = PTR_ERR(sim_display_dev);
-		SDE_ERROR("Failed to create device!\n");
+		SDE_ERROR("Failed to create panel device!\n");
 		return ret;
 	}
-	ret = device_create_file(sim_display_dev, &dev_attr_bl_fps_func);
-	if(ret)
+
+	ret = sysfs_create_group(&sim_display_dev->kobj, &panel_fps_attr_group);
+	if (ret)
 	{
-		SDE_ERROR("panel creat bl_fps_func sysfs failed, ret:%d \n", ret);
-		class_destroy(sim_display_class);
-		return ret;
-	}
-	ret = device_create_file(sim_display_dev, &dev_attr_bl_hbm_mode);
-	if(ret)
-	{
-		SDE_ERROR("panel creat bl_hbm_mode sysfs failed, ret:%d \n", ret);
-		class_destroy(sim_display_class);
-		return ret;
-	}
-	ret = device_create_file(sim_display_dev, &dev_attr_dynamic_fps);
-	if(ret)
-	{
-		SDE_ERROR("panel creat dynamic_fps sysfs failed, ret:%d \n", ret);
-		class_destroy(sim_display_class);
-		return ret;
-	}
-	ret = device_create_file(sim_display_dev, &dev_attr_eye_protect);
-	if(ret)
-	{
-		SDE_ERROR("panel creat eye_protect sysfs failed, ret:%d \n", ret);
-		class_destroy(sim_display_class);
-		return ret;
-	}
-	ret = device_create_file(sim_display_dev, &dev_attr_color_invert);
-	if(ret)
-	{
-		SDE_ERROR("panel creat color_invert sysfs failed, ret:%d \n", ret);
+		SDE_ERROR("Failed to create panel fps sysfs nodes, ret:%d \n", ret);
 		class_destroy(sim_display_class);
 		return ret;
 	}
@@ -1465,6 +1435,7 @@ void sde_connector_destroy(struct drm_connector *connector)
 		backlight_cdev_unregister(c_conn->cdev);
 	if (c_conn->bl_device)
 		backlight_device_unregister(c_conn->bl_device);
+	sysfs_remove_group(&sim_display_dev->kobj, &panel_fps_attr_group);
 	drm_connector_unregister(connector);
 	mutex_destroy(&c_conn->lock);
 	sde_fence_deinit(c_conn->retire_fence);
