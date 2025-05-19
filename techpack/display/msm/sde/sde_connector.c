@@ -286,6 +286,11 @@ static int sde_backlight_device_update_fps(u8 value)
 		return -EINVAL;
 	}
 
+	if (!panel->panel_initialized) {
+		SDE_ERROR("panel not initialized, skipping\n");
+		return -EINVAL;
+	}
+
 	bl = &panel->bl_config;
 	if (bl->type == DSI_BACKLIGHT_DCS)
 		rc = dsi_panel_update_display_fps(panel, value);
@@ -317,6 +322,11 @@ static int sde_backlight_device_update_hbm(u8 value)
 	panel = dsi_display->panel;
 	if (!panel) {
 		SDE_ERROR("invalid panel\n");
+		return -EINVAL;
+	}
+
+	if (!panel->panel_initialized) {
+		SDE_ERROR("panel not initialized, skipping\n");
 		return -EINVAL;
 	}
 
