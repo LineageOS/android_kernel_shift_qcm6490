@@ -197,11 +197,28 @@ static int sde_backlight_device_get_display_reg_value(u8 cmd, u8 *value)
 {
 	int rc = 0;
 	struct sde_connector *c_conn = sim_global_c_conn;
-	struct dsi_display *dsi_display = c_conn->display;
-	//struct dsi_panel *panel = c_conn->display->panel;
-	struct dsi_panel *panel = dsi_display->panel;
-	struct dsi_backlight_config *bl = &panel->bl_config;
+	struct dsi_display *dsi_display;
+	struct dsi_panel *panel;
+	struct dsi_backlight_config *bl;
 
+	if (!c_conn) {
+		SDE_ERROR("invalid connector\n");
+		return -EINVAL;
+	}
+
+	dsi_display = c_conn->display;
+	if (!dsi_display) {
+		SDE_ERROR("invalid display\n");
+		return -EINVAL;
+	}
+
+	panel = dsi_display->panel;
+	if (!panel) {
+		SDE_ERROR("invalid panel\n");
+		return -EINVAL;
+	}
+
+	bl = &panel->bl_config;
 	if (bl->type == DSI_BACKLIGHT_DCS)
 		rc = dsi_panel_get_display_reg_value(panel, cmd, value);
 	if (rc < 0)
@@ -214,12 +231,28 @@ static int sde_backlight_device_set_display_reg_value(u8 cmd, u8 value)
 {
 	int rc = 0;
 	struct sde_connector *c_conn = sim_global_c_conn;
-	struct dsi_display *dsi_display = c_conn->display;
-	//struct dsi_panel *panel = c_conn->display->panel;
-	struct dsi_panel *panel = dsi_display->panel;
-	struct dsi_backlight_config *bl = &panel->bl_config;
+	struct dsi_display *dsi_display;
+	struct dsi_panel *panel;
+	struct dsi_backlight_config *bl;
 
+	if (!c_conn) {
+		SDE_ERROR("invalid connector\n");
+		return -EINVAL;
+	}
 
+	dsi_display = c_conn->display;
+	if (!dsi_display) {
+		SDE_ERROR("invalid display\n");
+		return -EINVAL;
+	}
+
+	panel = dsi_display->panel;
+	if (!panel) {
+		SDE_ERROR("invalid panel\n");
+		return -EINVAL;
+	}
+
+	bl = &panel->bl_config;
 	if (bl->type == DSI_BACKLIGHT_DCS)
 		rc = dsi_panel_set_display_reg_value(panel, cmd, value);
 	if (rc < 0)
@@ -232,12 +265,28 @@ static int sde_backlight_device_update_fps(u8 value)
 {
 	int rc = 0;
 	struct sde_connector *c_conn = sim_global_c_conn;
-	struct dsi_display *dsi_display = c_conn->display;
-	//struct dsi_panel *panel = c_conn->display->panel;
-	struct dsi_panel *panel = dsi_display->panel;
-	struct dsi_backlight_config *bl = &panel->bl_config;
+	struct dsi_display *dsi_display;
+	struct dsi_panel *panel;
+	struct dsi_backlight_config *bl;
 
+	if (!c_conn) {
+		SDE_ERROR("invalid connector\n");
+		return -EINVAL;
+	}
 
+	dsi_display = c_conn->display;
+	if (!dsi_display) {
+		SDE_ERROR("invalid display\n");
+		return -EINVAL;
+	}
+
+	panel = dsi_display->panel;
+	if (!panel) {
+		SDE_ERROR("invalid panel\n");
+		return -EINVAL;
+	}
+
+	bl = &panel->bl_config;
 	if (bl->type == DSI_BACKLIGHT_DCS)
 		rc = dsi_panel_update_display_fps(panel, value);
 	if (rc < 0)
@@ -250,12 +299,28 @@ static int sde_backlight_device_update_hbm(u8 value)
 {
 	int rc = 0;
 	struct sde_connector *c_conn = sim_global_c_conn;
-	struct dsi_display *dsi_display = c_conn->display;
-	//struct dsi_panel *panel = c_conn->display->panel;
-	struct dsi_panel *panel = dsi_display->panel;
-	struct dsi_backlight_config *bl = &panel->bl_config;
+	struct dsi_display *dsi_display;
+	struct dsi_panel *panel;
+	struct dsi_backlight_config *bl;
 
+	if (!c_conn) {
+		SDE_ERROR("invalid connector\n");
+		return -EINVAL;
+	}
 
+	dsi_display = c_conn->display;
+	if (!dsi_display) {
+		SDE_ERROR("invalid display\n");
+		return -EINVAL;
+	}
+
+	panel = dsi_display->panel;
+	if (!panel) {
+		SDE_ERROR("invalid panel\n");
+		return -EINVAL;
+	}
+
+	bl = &panel->bl_config;
 	if (bl->type == DSI_BACKLIGHT_DCS)
 		rc = dsi_panel_update_display_hbm(panel, value);
 	if (rc < 0)
@@ -268,12 +333,28 @@ static int sde_backlight_device_update_dynamic_fps(u8 value)
 {
 	int rc = 0;
 	struct sde_connector *c_conn = sim_global_c_conn;
-	struct dsi_display *dsi_display = c_conn->display;
-	//struct dsi_panel *panel = c_conn->display->panel;
-	struct dsi_panel *panel = dsi_display->panel;
-	struct dsi_backlight_config *bl = &panel->bl_config;
+	struct dsi_display *dsi_display;
+	struct dsi_panel *panel;
+	struct dsi_backlight_config *bl;
 
+	if (!c_conn) {
+		SDE_ERROR("invalid connector\n");
+		return -EINVAL;
+	}
 
+	dsi_display = c_conn->display;
+	if (!dsi_display) {
+		SDE_ERROR("invalid display\n");
+		return -EINVAL;
+	}
+
+	panel = dsi_display->panel;
+	if (!panel) {
+		SDE_ERROR("invalid panel\n");
+		return -EINVAL;
+	}
+
+	bl = &panel->bl_config;
 	if (bl->type == DSI_BACKLIGHT_DCS)
 		rc = dsi_panel_update_display_dynamic_fps(panel, value);
 	if (rc < 0)
