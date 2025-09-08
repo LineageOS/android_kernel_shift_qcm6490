@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1bc04a96_dd46a04e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 19282
+      },
+      "writtenOn": "2025-09-08T07:12:01Z",
+      "side": 1,
+      "message": "Breaks very early DVT units. Affected units need a display replacement.\n\nThis change also includes tuning for newly produced display panel, which without this change may have a greenish or blueish tint.",
+      "revId": "02a8d96802039c447896d3033ea49fd00e8306c8",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
