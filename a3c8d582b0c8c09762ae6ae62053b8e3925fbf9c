@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c7a31c3a_2450e4d7",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 19282
+      },
+      "writtenOn": "2025-09-26T12:28:03Z",
+      "side": 1,
+      "message": "Requires the wireguard changes[1] merged in the common base first, then merged into this kernel.\n\n[1] - https://review.lineageos.org/c/LineageOS/android_kernel_qcom_sm8350/+/452736",
+      "revId": "a3c8d582b0c8c09762ae6ae62053b8e3925fbf9c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
