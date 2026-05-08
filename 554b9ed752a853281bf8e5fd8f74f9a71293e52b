@@ -16,6 +16,23 @@
       "message": "Quick smoke test works.\n\nHowever, I\u0027ll also run `vts-kernel` again to be sure.",
       "revId": "554b9ed752a853281bf8e5fd8f74f9a71293e52b",
       "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1cf8be25_2e652983",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 19282
+      },
+      "writtenOn": "2026-05-08T06:31:45Z",
+      "side": 1,
+      "message": "`vts-kernel` is still fine too.",
+      "revId": "554b9ed752a853281bf8e5fd8f74f9a71293e52b",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
     }
   ]
 }
