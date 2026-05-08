@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "63ce2c80_ccb12602",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 19282
+      },
+      "writtenOn": "2026-05-08T19:53:11Z",
+      "side": 1,
+      "message": "Requires https://review.lineageos.org/q/topic:%22sm8350-fuse-bpf%22",
+      "revId": "0e64db29322ab5b25151fa70142c741cb52eff18",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
