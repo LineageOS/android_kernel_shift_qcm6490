@@ -37,10 +37,7 @@
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/of_irq.h>
-#if defined(CONFIG_FB)
-#include <linux/notifier.h>
-#include <linux/fb.h>
-#elif defined(CONFIG_DRM)
+#if defined(CONFIG_DRM)
 #if defined(CONFIG_DRM_PANEL)
 #include <drm/drm_panel.h>
 #else
@@ -1671,51 +1668,7 @@ static void touch_wakeup_delay_work(struct work_struct *work)
     input_report_key(input_dev, BTN_TOUCH, 1);
 }
 
-#if defined(CONFIG_FB)
-static int fb_notifier_callback(struct notifier_block *self,
-                                unsigned long event, void *data)
-{
-    struct fb_event *evdata = data;
-    int *blank = NULL;
-    struct fts_ts_data *ts_data = container_of(self, struct fts_ts_data,
-                                  fb_notif);
-
-    if (!evdata) {
-        FTS_ERROR("evdata is null");
-        return 0;
-    }
-
-    if (!(event == FB_EARLY_EVENT_BLANK || event == FB_EVENT_BLANK)) {
-        FTS_INFO("event(%lu) do not need process\n", event);
-        return 0;
-    }
-
-    blank = evdata->data;
-    FTS_INFO("FB event:%lu,blank:%d", event, *blank);
-    switch (*blank) {
-    case FB_BLANK_UNBLANK:
-        if (FB_EARLY_EVENT_BLANK == event) {
-            FTS_INFO("resume: event = %lu, not care\n", event);
-        } else if (FB_EVENT_BLANK == event) {
-            queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
-        }
-        break;
-    case FB_BLANK_POWERDOWN:
-        if (FB_EARLY_EVENT_BLANK == event) {
-            cancel_work_sync(&fts_data->resume_work);
-            fts_ts_suspend(ts_data->dev);
-        } else if (FB_EVENT_BLANK == event) {
-            FTS_INFO("suspend: event = %lu, not care\n", event);
-        }
-        break;
-    default:
-        FTS_INFO("FB BLANK(%d) do not need process\n", *blank);
-        break;
-    }
-
-    return 0;
-}
-#elif defined(CONFIG_DRM)
+#if defined(CONFIG_DRM)
 #if defined(CONFIG_DRM_PANEL)
 static struct drm_panel *active_panel;
 
@@ -1996,13 +1949,7 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
     ts_data->pm_suspend = false;
 #endif
 
-#if defined(CONFIG_FB)
-    ts_data->fb_notif.notifier_call = fb_notifier_callback;
-    ret = fb_register_client(&ts_data->fb_notif);
-    if (ret) {
-        FTS_ERROR("[FB]Unable to register fb_notifier: %d", ret);
-    }
-#elif defined(CONFIG_DRM)
+#if defined(CONFIG_DRM)
     ts_data->fb_notif.notifier_call = drm_notifier_callback;
 #if defined(CONFIG_DRM_PANEL)
     if (active_panel) {
@@ -2078,10 +2025,7 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
     if (ts_data->ts_workqueue)
         destroy_workqueue(ts_data->ts_workqueue);
 
-#if defined(CONFIG_FB)
-    if (fb_unregister_client(&ts_data->fb_notif))
-        FTS_ERROR("[FB]Error occurred while unregistering fb_notifier.");
-#elif defined(CONFIG_DRM)
+#if defined(CONFIG_DRM)
 #if defined(CONFIG_DRM_PANEL)
     if (active_panel)
         drm_panel_notifier_unregister(active_panel, &ts_data->fb_notif);
