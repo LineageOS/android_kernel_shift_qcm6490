@@ -1666,30 +1666,38 @@ static struct drm_panel *active_panel;
 
 static int drm_check_dt(struct device_node *np)
 {
-    int i = 0;
-    int count = 0;
     struct device_node *node = NULL;
     struct drm_panel *panel = NULL;
+    int count = 0;
+    int ret;
 
     count = of_count_phandle_with_args(np, "panel", NULL);
     if (count <= 0) {
-        FTS_ERROR("find drm_panel count(%d) fail", count);
+        FTS_ERROR("No drm panel specified, count(%d)", count);
         return -ENODEV;
     }
 
-    for (i = 0; i < count; i++) {
-        node = of_parse_phandle(np, "panel", i);
-        panel = of_drm_find_panel(node);
-        of_node_put(node);
-        if (!IS_ERR(panel)) {
-            FTS_INFO("find drm_panel successfully");
-            active_panel = panel;
-            return 0;
-        }
+    node = of_parse_phandle(np, "panel", 0);
+    if (!node) {
+        FTS_ERROR("Failed to find drm panel handle in DT");
+        return -ENODEV;
     }
 
-    FTS_ERROR("no find drm_panel");
-    return -ENODEV;
+    panel = of_drm_find_panel(node);
+    of_node_put(node);
+
+    if (IS_ERR(panel)) {
+        ret = PTR_ERR(panel);
+        if (ret == -EPROBE_DEFER)
+            FTS_DEBUG("Panel driver is not ready yet, deferring probe");
+        else
+            FTS_ERROR("Failed to find drm panel: %d", ret);
+        return ret;
+    }
+
+    FTS_INFO("Successfully found drm panel!");
+    active_panel = panel;
+    return 0;
 }
 
 static int drm_notifier_callback(struct notifier_block *self,
@@ -1768,25 +1776,30 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 
     if (ts_data->dev->of_node) {
         ret = fts_parse_dt(ts_data->dev, ts_data->pdata);
-        if (ret)
-            FTS_ERROR("device-tree parse fail");
+        if (ret) {
+            FTS_ERROR("Failed to parse device tree data");
+            goto err_early_init;
+        }
 
         ret = drm_check_dt(ts_data->dev->of_node);
         if (ret) {
-            FTS_ERROR("parse drm-panel fail");
+            goto err_early_init;
         }
     } else {
         if (ts_data->dev->platform_data) {
             memcpy(ts_data->pdata, ts_data->dev->platform_data, pdata_size);
         } else {
             FTS_ERROR("platform_data is null");
-            return -ENODEV;
+            ret = -ENODEV;
+            goto err_early_init;
         }
     }
 
     ts_data->ts_workqueue = create_singlethread_workqueue("fts_wq");
     if (!ts_data->ts_workqueue) {
         FTS_ERROR("create fts workqueue fail");
+        ret = -ENOMEM;
+        goto err_early_init;
     }
 
     spin_lock_init(&ts_data->irq_lock);
@@ -1916,12 +1929,13 @@ err_buffer_init:
 #if FTS_PEN_EN
     input_unregister_device(ts_data->pen_dev);
 #endif
+err_bus_init:
 err_input_init:
     if (ts_data->ts_workqueue)
         destroy_workqueue(ts_data->ts_workqueue);
-err_bus_init:
     kfree_safe(ts_data->bus_tx_buf);
     kfree_safe(ts_data->bus_rx_buf);
+err_early_init:
     kfree_safe(ts_data->pdata);
 
     FTS_FUNC_EXIT();
@@ -2099,14 +2113,14 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
     int ret = 0;
     struct fts_ts_data *ts_data = NULL;
 
-    FTS_INFO("Touch Screen(I2C BUS) driver prboe...");
+    FTS_INFO("Touch Screen(I2C BUS) driver probing...");
     if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
         FTS_ERROR("I2C not supported");
         return -ENODEV;
     }
 
     /* malloc memory for global struct variable */
-    ts_data = (struct fts_ts_data *)kzalloc(sizeof(*ts_data), GFP_KERNEL);
+    ts_data = devm_kzalloc(&client->dev, sizeof(*ts_data), GFP_KERNEL);
     if (!ts_data) {
         FTS_ERROR("allocate memory for fts_data fail");
         return -ENOMEM;
@@ -2122,12 +2136,14 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 
     ret = fts_ts_probe_entry(ts_data);
     if (ret) {
-        FTS_ERROR("Touch Screen(I2C BUS) driver probe fail");
-        kfree_safe(ts_data);
+        if (ret == -EPROBE_DEFER)
+            FTS_DEBUG("Touch Screen(I2C BUS) driver probe deferred");
+        else
+            FTS_ERROR("Touch Screen(I2C BUS) driver probe fail");
         return ret;
     }
 
-    FTS_INFO("Touch Screen(I2C BUS) driver prboe successfully");
+    FTS_INFO("Touch Screen(I2C BUS) driver probe has completed successfully");
     return 0;
 }
 
