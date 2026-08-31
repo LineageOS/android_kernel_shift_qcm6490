@@ -46,9 +46,6 @@
 #else
 #include <linux/msm_drm_notify.h>
 #endif
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-#include <linux/earlysuspend.h>
-#define FTS_SUSPEND_LEVEL 1     /* Early-suspend level */
 #endif
 #include "focaltech_core.h"
 
@@ -1856,23 +1853,6 @@ static int drm_notifier_callback(struct notifier_block *self,
     return 0;
 }
 #endif
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-static void fts_ts_early_suspend(struct early_suspend *handler)
-{
-    struct fts_ts_data *ts_data = container_of(handler, struct fts_ts_data,
-                                  early_suspend);
-
-    cancel_work_sync(&fts_data->resume_work);
-    fts_ts_suspend(ts_data->dev);
-}
-
-static void fts_ts_late_resume(struct early_suspend *handler)
-{
-    struct fts_ts_data *ts_data = container_of(handler, struct fts_ts_data,
-                                  early_suspend);
-
-    queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
-}
 #endif
 
 static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
@@ -2036,11 +2016,6 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
         FTS_ERROR("[DRM]Unable to register fb_notifier: %d\n", ret);
     }
 #endif
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-    ts_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + FTS_SUSPEND_LEVEL;
-    ts_data->early_suspend.suspend = fts_ts_early_suspend;
-    ts_data->early_suspend.resume = fts_ts_late_resume;
-    register_early_suspend(&ts_data->early_suspend);
 #endif
 
     FTS_FUNC_EXIT();
@@ -2114,8 +2089,6 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
     if (msm_drm_unregister_client(&ts_data->fb_notif))
         FTS_ERROR("[DRM]Error occurred while unregistering fb_notifier.\n");
 #endif
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-    unregister_early_suspend(&ts_data->early_suspend);
 #endif
 
     if (gpio_is_valid(ts_data->pdata->reset_gpio))
