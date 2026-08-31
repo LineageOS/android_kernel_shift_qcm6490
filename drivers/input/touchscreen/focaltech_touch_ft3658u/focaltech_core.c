@@ -37,12 +37,8 @@
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/of_irq.h>
-#if defined(CONFIG_DRM)
 #if defined(CONFIG_DRM_PANEL)
 #include <drm/drm_panel.h>
-#else
-#include <linux/msm_drm_notify.h>
-#endif
 #endif
 #include "focaltech_core.h"
 
@@ -1668,7 +1664,6 @@ static void touch_wakeup_delay_work(struct work_struct *work)
     input_report_key(input_dev, BTN_TOUCH, 1);
 }
 
-#if defined(CONFIG_DRM)
 #if defined(CONFIG_DRM_PANEL)
 static struct drm_panel *active_panel;
 
@@ -1760,52 +1755,6 @@ static int drm_notifier_callback(struct notifier_block *self,
 
     return 0;
 }
-#else
-static int drm_notifier_callback(struct notifier_block *self,
-                                 unsigned long event, void *data)
-{
-    struct msm_drm_notifier *evdata = data;
-    int *blank = NULL;
-    struct fts_ts_data *ts_data = container_of(self, struct fts_ts_data,
-                                  fb_notif);
-
-    if (!evdata) {
-        FTS_ERROR("evdata is null");
-        return 0;
-    }
-
-    if (!((event == MSM_DRM_EARLY_EVENT_BLANK )
-          || (event == MSM_DRM_EVENT_BLANK))) {
-        FTS_INFO("event(%lu) do not need process\n", event);
-        return 0;
-    }
-
-    blank = evdata->data;
-    FTS_INFO("DRM event:%lu,blank:%d", event, *blank);
-    switch (*blank) {
-    case MSM_DRM_BLANK_UNBLANK:
-        if (MSM_DRM_EARLY_EVENT_BLANK == event) {
-            FTS_INFO("resume: event = %lu, not care\n", event);
-        } else if (MSM_DRM_EVENT_BLANK == event) {
-            queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
-        }
-        break;
-    case MSM_DRM_BLANK_POWERDOWN:
-        if (MSM_DRM_EARLY_EVENT_BLANK == event) {
-            cancel_work_sync(&fts_data->resume_work);
-            fts_ts_suspend(ts_data->dev);
-        } else if (MSM_DRM_EVENT_BLANK == event) {
-            FTS_INFO("suspend: event = %lu, not care\n", event);
-        }
-        break;
-    default:
-        FTS_INFO("DRM BLANK(%d) do not need process\n", *blank);
-        break;
-    }
-
-    return 0;
-}
-#endif
 #endif
 
 static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
@@ -1826,13 +1775,11 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
         if (ret)
             FTS_ERROR("device-tree parse fail");
 
-#if defined(CONFIG_DRM)
 #if defined(CONFIG_DRM_PANEL)
         ret = drm_check_dt(ts_data->dev->of_node);
         if (ret) {
             FTS_ERROR("parse drm-panel fail");
         }
-#endif
 #endif
     } else {
         if (ts_data->dev->platform_data) {
@@ -1949,7 +1896,6 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
     ts_data->pm_suspend = false;
 #endif
 
-#if defined(CONFIG_DRM)
     ts_data->fb_notif.notifier_call = drm_notifier_callback;
 #if defined(CONFIG_DRM_PANEL)
     if (active_panel) {
@@ -1957,12 +1903,6 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
         if (ret)
             FTS_ERROR("[DRM]drm_panel_notifier_register fail: %d\n", ret);
     }
-#else
-    ret = msm_drm_register_client(&ts_data->fb_notif);
-    if (ret) {
-        FTS_ERROR("[DRM]Unable to register fb_notifier: %d\n", ret);
-    }
-#endif
 #endif
 
     FTS_FUNC_EXIT();
@@ -2025,14 +1965,9 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
     if (ts_data->ts_workqueue)
         destroy_workqueue(ts_data->ts_workqueue);
 
-#if defined(CONFIG_DRM)
 #if defined(CONFIG_DRM_PANEL)
     if (active_panel)
         drm_panel_notifier_unregister(active_panel, &ts_data->fb_notif);
-#else
-    if (msm_drm_unregister_client(&ts_data->fb_notif))
-        FTS_ERROR("[DRM]Error occurred while unregistering fb_notifier.\n");
-#endif
 #endif
 
     if (gpio_is_valid(ts_data->pdata->reset_gpio))
@@ -2253,11 +2188,7 @@ static void __exit fts_ts_exit(void)
     i2c_del_driver(&fts_ts_driver);
 }
 
-#if defined(CONFIG_DRM)
-late_initcall(fts_ts_init);
-#else
 module_init(fts_ts_init);
-#endif
 module_exit(fts_ts_exit);
 
 MODULE_AUTHOR("FocalTech Driver Team");
@@ -2266,8 +2197,4 @@ MODULE_LICENSE("GPL v2");
 
 #if FTS_ENABLE_BINARY_FLASHING
 MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
-#endif
-
-#if defined(CONFIG_DRM)
-MODULE_SOFTDEP("pre: msm_drm");
 #endif

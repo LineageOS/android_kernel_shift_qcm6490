@@ -232,7 +232,7 @@ struct fts_ts_data {
     struct pinctrl_state *pins_suspend;
     struct pinctrl_state *pins_release;
 #endif
-#if defined(CONFIG_DRM)
+#if defined(CONFIG_DRM_PANEL)
     struct notifier_block fb_notif;
 #endif
 };
