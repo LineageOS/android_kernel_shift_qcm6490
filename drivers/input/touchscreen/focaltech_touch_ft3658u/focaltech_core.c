@@ -37,9 +37,7 @@
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/of_irq.h>
-#if defined(CONFIG_DRM_PANEL)
 #include <drm/drm_panel.h>
-#endif
 #include "focaltech_core.h"
 
 /*****************************************************************************
@@ -1664,7 +1662,6 @@ static void touch_wakeup_delay_work(struct work_struct *work)
     input_report_key(input_dev, BTN_TOUCH, 1);
 }
 
-#if defined(CONFIG_DRM_PANEL)
 static struct drm_panel *active_panel;
 
 static int drm_check_dt(struct device_node *np)
@@ -1701,7 +1698,7 @@ static int drm_notifier_callback(struct notifier_block *self,
     struct drm_panel_notifier *evdata = data;
     int *blank = NULL;
     struct fts_ts_data *ts_data = container_of(self, struct fts_ts_data,
-                                  fb_notif);
+                                  panel_notifier);
 
     if (!evdata) {
         FTS_ERROR("evdata is null");
@@ -1755,7 +1752,6 @@ static int drm_notifier_callback(struct notifier_block *self,
 
     return 0;
 }
-#endif
 
 static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 {
@@ -1775,12 +1771,10 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
         if (ret)
             FTS_ERROR("device-tree parse fail");
 
-#if defined(CONFIG_DRM_PANEL)
         ret = drm_check_dt(ts_data->dev->of_node);
         if (ret) {
             FTS_ERROR("parse drm-panel fail");
         }
-#endif
     } else {
         if (ts_data->dev->platform_data) {
             memcpy(ts_data->pdata, ts_data->dev->platform_data, pdata_size);
@@ -1896,14 +1890,12 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
     ts_data->pm_suspend = false;
 #endif
 
-    ts_data->fb_notif.notifier_call = drm_notifier_callback;
-#if defined(CONFIG_DRM_PANEL)
+    ts_data->panel_notifier.notifier_call = drm_notifier_callback;
     if (active_panel) {
-        ret = drm_panel_notifier_register(active_panel, &ts_data->fb_notif);
+        ret = drm_panel_notifier_register(active_panel, &ts_data->panel_notifier);
         if (ret)
             FTS_ERROR("[DRM]drm_panel_notifier_register fail: %d\n", ret);
     }
-#endif
 
     FTS_FUNC_EXIT();
     return 0;
@@ -1965,10 +1957,8 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
     if (ts_data->ts_workqueue)
         destroy_workqueue(ts_data->ts_workqueue);
 
-#if defined(CONFIG_DRM_PANEL)
     if (active_panel)
-        drm_panel_notifier_unregister(active_panel, &ts_data->fb_notif);
-#endif
+        drm_panel_notifier_unregister(active_panel, &ts_data->panel_notifier);
 
     if (gpio_is_valid(ts_data->pdata->reset_gpio))
         gpio_free(ts_data->pdata->reset_gpio);
