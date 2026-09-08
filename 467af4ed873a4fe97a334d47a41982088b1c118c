@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3836351e_c8ff8ee3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 19282
+      },
+      "writtenOn": "2026-09-08T17:37:38Z",
+      "side": 1,
+      "message": "This fixes a race condition on boot, where it fails to find the display panel, whether or not msm_drm is loading first or not.\n\nIf it fails to find the display panel, then Tap-To-Wake will not work.",
+      "revId": "467af4ed873a4fe97a334d47a41982088b1c118c",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
