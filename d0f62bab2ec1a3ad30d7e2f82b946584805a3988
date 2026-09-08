@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "806bc0d1_807e9261",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 19282
+      },
+      "writtenOn": "2026-09-08T17:34:19Z",
+      "side": 1,
+      "message": "It seems that previously it has defaulted to the non-DSC variant?",
+      "revId": "d0f62bab2ec1a3ad30d7e2f82b946584805a3988",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71"
+    }
+  ]
+}
