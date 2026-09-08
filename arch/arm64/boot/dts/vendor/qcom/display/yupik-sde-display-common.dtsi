@@ -9,8 +9,6 @@
 #include "dsi-panel-r66451-dsc-fhd-plus-120hz-video-cphy.dtsi"
 #include "dsi-panel-r66451-dsc-fhd-plus-144hz-cmd-cphy.dtsi"
 #include "dsi-panel-r66451-dsc-fhd-plus-144hz-video-cphy.dtsi"
-#include "dsi-panel-sh8804b-mz-amoled-fhd-plus-vid.dtsi"
-#include "dsi-panel-sh8804b-mz-amoled-fhd-plus-cmd.dtsi"
 #include "dsi-panel-sh8804b-mz-amoled-dsc-fhd-plus-cmd.dtsi"
 #include "dsi-panel-sim-video.dtsi"
 #include "dsi-panel-ext-bridge-1080p.dtsi"
@@ -147,33 +145,7 @@
 		qcom,dsi-phy = <&mdss_dsi_phy0>;
 
 		qcom,mdp = <&mdss_mdp>;
-		qcom,dsi-default-panel = <&dsi_sh8804b_mz_amoled_fhd_plus_cmd &dsi_sh8804b_mz_amoled_dsc_fhd_plus_cmd>;
-	};
-};
-
-&dsi_sh8804b_mz_amoled_fhd_plus_video {
-	qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0",
-			"src_byte_clk0", "src_pixel_clk0";
-	qcom,mdss-dsi-display-timings {
-		timing@0 {
-			qcom,mdss-dsi-panel-phy-timings = [00 21 08 08 19 22 09
-				08 09 02 04 00 1c 0d];
-			qcom,display-topology = <1 0 1>;
-			qcom,default-topology-index = <0>;
-		};
-	};
-};
-
-&dsi_sh8804b_mz_amoled_fhd_plus_cmd {
-	qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0",
-			"src_byte_clk0", "src_pixel_clk0";
-	qcom,mdss-dsi-display-timings {
-		timing@0 {
-			qcom,mdss-dsi-panel-phy-timings = [00 21 08 08 19 22 09
-				08 09 02 04 00 1c 0d];
-			qcom,display-topology = <1 0 1>;
-			qcom,default-topology-index = <0>;
-		};
+		qcom,dsi-default-panel = <&dsi_sh8804b_mz_amoled_dsc_fhd_plus_cmd>;
 	};
 };
 

@@ -460,7 +460,7 @@
 		focaltech,max-touch-number = <10>;
 		focaltech,display-coords =  <0 0 1079 2399>;
 
-		panel = <&dsi_sh8804b_mz_amoled_fhd_plus_cmd &dsi_sh8804b_mz_amoled_dsc_fhd_plus_cmd>;
+		panel = <&dsi_sh8804b_mz_amoled_dsc_fhd_plus_cmd>;
 
 		pinctrl-names = "pmx_ts_active","pmx_ts_suspend","pmx_ts_release";
 		pinctrl-0 = <&ts_active>;

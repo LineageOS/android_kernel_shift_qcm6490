@@ -35,27 +35,7 @@
 	pinctrl-names = "panel_active", "panel_suspend";
 	pinctrl-0 = <&sde_dsi_active &sde_te_active >;
 
-	qcom,dsi-default-panel = <&dsi_sh8804b_mz_amoled_fhd_plus_cmd &dsi_sh8804b_mz_amoled_dsc_fhd_plus_cmd>;
-};
-
-&dsi_sh8804b_mz_amoled_fhd_plus_video {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply_amoled>;
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
-	qcom,mdss-dsi-bl-min-level = <1>;
-	qcom,mdss-dsi-bl-max-level = <2047>;
-	qcom,mdss-brightness-max-level = <2047>;
-	qcom,mdss-dsi-bl-inverted-dbv;
-	qcom,platform-reset-gpio = <&tlmm 44 0>;
-};
-
-&dsi_sh8804b_mz_amoled_fhd_plus_cmd {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply_amoled>;
-	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
-	qcom,mdss-dsi-bl-min-level = <1>;
-	qcom,mdss-dsi-bl-max-level = <2047>;
-	qcom,mdss-brightness-max-level = <2047>;
-	qcom,mdss-dsi-bl-inverted-dbv;
-	qcom,platform-reset-gpio = <&tlmm 44 0>;
+	qcom,dsi-default-panel = <&dsi_sh8804b_mz_amoled_dsc_fhd_plus_cmd>;
 };
 
 &dsi_sh8804b_mz_amoled_dsc_fhd_plus_cmd {
