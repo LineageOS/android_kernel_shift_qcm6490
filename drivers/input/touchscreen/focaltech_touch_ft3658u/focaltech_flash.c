@@ -1932,47 +1932,53 @@ static int fts_fwupg_get_module_info(struct fts_upgrade *upg)
 
 static int fts_get_fw_file_via_request_firmware(struct fts_upgrade *upg)
 {
-    int ret = 0;
     const struct firmware *fw = NULL;
-    u8 *tmpbuf = NULL;
     char fwname[FILE_NAME_LENGTH] = { 0 };
+    u8 *tmpbuf = NULL;
+    int ret = 0;
 
-    if (!upg || !upg->ts_data || !upg->ts_data->dev) {
-        FTS_ERROR("upg/ts_data/dev is null");
+    if (!upg || !upg->ts_data || !upg->ts_data->dev || !upg->module_info) {
+        FTS_ERROR("upg/ts_data/dev/module_info is null");
         return -EINVAL;
     }
 
-    snprintf(fwname, FILE_NAME_LENGTH, "%s%s.bin", \
-             FTS_FW_NAME_PREX_WITH_REQUEST, \
+    snprintf(fwname, FILE_NAME_LENGTH, "%s%s.bin",
+             FTS_FW_NAME_PREX_WITH_REQUEST,
              upg->module_info->vendor_name);
 
     ret = request_firmware(&fw, fwname, upg->ts_data->dev);
-    if (0 == ret) {
-        FTS_INFO("firmware(%s) request successfully", fwname);
-        tmpbuf = vmalloc(fw->size);
-        if (NULL == tmpbuf) {
-            FTS_ERROR("fw buffer vmalloc fail");
-            ret = -ENOMEM;
-        } else {
-            memcpy(tmpbuf, fw->data, fw->size);
-            upg->fw = tmpbuf;
-            upg->fw_length = fw->size;
-            upg->fw_from_request = 1;
-        }
-    } else {
-        FTS_INFO("firmware(%s) request fail,ret=%d", fwname, ret);
+    if (ret) {
+        FTS_ERROR("firmware(%s) request failed, ret=%d", fwname, ret);
+        return ret;
     }
 
-    if (fw != NULL) {
+    FTS_INFO("firmware(%s) requested successfully", fwname);
+
+    tmpbuf = kvmalloc(fw->size, GFP_KERNEL);
+    if (!tmpbuf) {
+        FTS_ERROR("Firmware buffer kvmalloc failed for size %zu", fw->size);
         release_firmware(fw);
-        fw = NULL;
+        return -ENOMEM;
     }
 
-    return ret;
+    memcpy(tmpbuf, fw->data, fw->size);
+    upg->fw = tmpbuf;
+    upg->fw_length = fw->size;
+    upg->fw_from_request = 1;
+
+    release_firmware(fw);
+
+    FTS_INFO("firmware(%s) loaded successfully", fwname);
+    return 0;
 }
 
 static int fts_get_fw_file_via_i(struct fts_upgrade *upg)
 {
+    if (!upg || !upg->module_info) {
+        FTS_ERROR("upg/module_info is null");
+        return -EINVAL;
+    }
+
     upg->fw = upg->module_info->fw_file;
     upg->fw_length = upg->module_info->fw_len;
     upg->fw_from_request = 0;
@@ -2015,8 +2021,10 @@ static int fts_fwupg_get_fw_file(struct fts_upgrade *upg)
     }
 
     if (FTS_FW_REQUEST_SUPPORT) {
+        FTS_DEBUG("Trying to get upgrade firmware via fw file");
         ret = fts_get_fw_file_via_request_firmware(upg);
         if (ret != 0) {
+            FTS_DEBUG("Could not upgrade using fw file, falling back to integrated firmware");
             get_fw_i_flag = true;
         }
     } else {
@@ -2155,7 +2163,7 @@ int fts_fwupg_exit(struct fts_ts_data *ts_data)
 
     if (fwupgrade) {
         if (fwupgrade->fw_from_request) {
-            vfree(fwupgrade->fw);
+            kvfree(fwupgrade->fw);
             fwupgrade->fw = NULL;
         }
 
